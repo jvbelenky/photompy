@@ -39,4 +39,4 @@ clean:
 test: 
 	$(PYTHON_INTERPRETER) tests/example_usage.py tests/LLIA001477-003.ies
 
-all: install clean
+all: install test clean
