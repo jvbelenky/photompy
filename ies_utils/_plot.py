@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from ._interpolate import get_intensity
+from ._read import read_ies_data
 
 
 def plot_ies(
@@ -17,7 +19,7 @@ def plot_ies(
     central plotting function
     """
 
-    if which.lower() not in ["original","extended","full"]:
+    if which.lower() not in ["original", "extended", "full"]:
         msg = "Argument `which` must be in [`original`, `extended`, `full`]"
         raise KeyError(msg)
 
@@ -30,7 +32,7 @@ def plot_ies(
         x, y, z = get_coords(thetas, phis, which="cartesian")
         intensity = values.flatten()
 
-    elif which.lower()== "extended":
+    elif which.lower() == "extended":
         thetas = lampdict["extended_vals"]["thetas"]
         phis = lampdict["extended_vals"]["phis"]
         values = lampdict["extended_vals"]["values"]
