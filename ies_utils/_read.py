@@ -27,8 +27,7 @@ def _process_keywords(header, lampdict):
     """
     Placeholder. Eventually to be reformatted to properly capture keyword data.
     """
-    lampdict["Header"] = header
-    return lampdict
+    return header
 
 
 def _process_header(data, lampdict):
@@ -228,11 +227,11 @@ def read_ies_data(path_to_file):
     header = []
     for i, line in enumerate(lines):
         header.append(line)
-        if line.startswith("TILT="):
-            if line == "TILT=NONE" or line == "TILT=<filename>":
-                i = i + 1
-            elif line == "TILT=INCLUDE":
-                i = i + 5
+        if line.startswith('TILT='):
+            if line=='TILT=INCLUDE':
+                i=i+5
+            else:
+                i=i+1
             break
     lampdict["Header"] = _process_keywords(header, lampdict)
 
