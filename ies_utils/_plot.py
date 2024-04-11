@@ -2,6 +2,72 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def plot_ies(
+    filename,
+    which="full",
+    elev=-90,
+    azim=90,
+    title="",
+    figsize=(6, 4),
+    show_cbar=False,
+    alpha=0.7,
+    cmap="rainbow",
+):
+    """
+    central plotting function
+    """
+
+    if which.lower() not in ["original","extended","full"]:
+        msg = "Argument `which` must be in [`original`, `extended`, `full`]"
+        raise KeyError(msg)
+
+    lampdict = read_ies_data(filename)
+
+    if which.lower() == "original":
+        thetas = lampdict["original_vals"]["thetas"]
+        phis = lampdict["original_vals"]["phis"]
+        values = lampdict["original_vals"]["values"]
+        x, y, z = get_coords(thetas, phis, which="cartesian")
+        intensity = values.flatten()
+
+    elif which.lower()== "extended":
+        thetas = lampdict["extended_vals"]["thetas"]
+        phis = lampdict["extended_vals"]["phis"]
+        values = lampdict["extended_vals"]["values"]
+        x, y, z = get_coords(thetas, phis, which="cartesian")
+        intensity = values.flatten()
+
+    elif which.lower() == "full":
+        thetamap = lampdict["extended_vals"]["thetas"]
+        phimap = lampdict["extended_vals"]["phis"]
+        valuemap = lampdict["extended_vals"]["values"].reshape(
+            len(phimap), len(thetamap)
+        )
+
+        newthetas = np.linspace(0, 180, 100)
+        newphis = np.linspace(0, 360, 100)
+
+        thetaflat, phiflat = get_coords(newthetas, newphis, which="polar")
+        intensity = [
+            get_intensity(theta, phi, thetamap, phimap, valuemap)
+            for theta, phi in zip(thetaflat, phiflat)
+        ]
+        x, y, z = get_coords(newthetas, newphis, which="cartesian")
+
+    plot_3d(
+        x,
+        y,
+        z,
+        intensity,
+        elev=elev,
+        azim=azim,
+        title=title,
+        figsize=figsize,
+        alpha=alpha,
+        cmap=cmap,
+    )
+
+
 def plot_3d(
     x,
     y,
@@ -9,8 +75,9 @@ def plot_3d(
     intensity,
     elev=-90,
     azim=90,
-    show_cbar=False,
+    title="",
     figsize=(6, 4),
+    show_cbar=False,
     alpha=0.7,
     cmap="rainbow",
 ):
@@ -40,6 +107,7 @@ def plot_3d(
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
+    ax.set_title(title)
     plt.show()
 
 
