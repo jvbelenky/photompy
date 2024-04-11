@@ -2,38 +2,33 @@ import bisect
 
 
 def get_intensity(theta, phi, thetamap, phimap, valuemap):
+
     """
-    Determine arbitrary intensity value anywhere on unit sphere
+    determine arbitrary intensity value anywhere on unit sphere
 
     theta: vertical angle value of interest
     phi: horizontal/azimuthal angle value of interest
     thetamap: existing theta value for which data is available
     phimap: existing phi vlaues for which data is available
-    valuemap: array of shape [len(phi),len(theta)]
-
-    Todo: better handling of phi/theta restrictions
+    valuemap: array of shape (len(ph))
 
     """
+    epsilon = np.finfo(np.float64).eps
 
-    if theta < 0 or theta > 180:
-        raise Exception(
-            "Theta must be >0 and <180 degrees, \
-            value provided was{:s}".format(
-                theta
-            )
-        )
+    if theta<0 or theta>180:
+        raise Exception('Theta must be >0 and <180 degrees, value provided was{:s}'.format(theta))
 
-    if phi > 360 or phi < 0:
+    if phi>360 or phi<0:
         phi = phi % 360
 
     # prevent div by zero errors
-    if phi == 0:
-        phi += 1e-7
-    if theta == 0:
-        theta += 1e-7
+    if phi==0:
+        phi+=epsilon
+    if theta==0:
+        theta+=epsilon
 
-    valuemap = valuemap.reshape(phimap.shape[0], thetamap.shape[0])
-
+    valuemap = valuemap.reshape(phimap.shape[0],thetamap.shape[0])
+    
     phi_idx1, phi_idx2 = _find_closest(phimap, phi)
     theta_idx1, theta_idx2 = _find_closest(thetamap, theta)
 
@@ -48,9 +43,10 @@ def get_intensity(theta, phi, thetamap, phimap, valuemap):
     val2 = _linear_interpolate(val2a, val2b, weight1)
 
     # Interpolate between the two results along thetamap
-    weight2 = (theta - thetamap[theta_idx1]) / (
-        thetamap[theta_idx2] - thetamap[theta_idx1]
-    )
+    denominator = (thetamap[theta_idx2] - thetamap[theta_idx1])
+    if denominator == 0:
+        denominator = epsilon
+    weight2 = (theta - thetamap[theta_idx1]) / denominator
     final_val = _linear_interpolate(val1, val2, weight2)
 
     return final_val
