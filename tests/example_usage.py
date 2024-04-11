@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-from ies_utils import read_ies_data, get_intensity, get_coords, plot_ies, total_optical_power
+from ies_utils import read_ies_data, write_ies_data, get_intensity, get_coords, plot_ies, total_optical_power
 
 if len(sys.argv) > 1:
     filename = sys.argv[1]
@@ -27,6 +27,8 @@ intensity = [
 x, y, z = get_coords(newthetas, newphis, which="cartesian")
 
 power = total_optical_power(filename)
+
+write_ies_data(lampdict,filename)
 
 # plot_ies(filename)
 print("Execution successful")
