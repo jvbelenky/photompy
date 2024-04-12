@@ -48,17 +48,26 @@ def lamp_area(filename, units="meters", verbose=False):
 
     lampdict = read_ies_data(filename)
     if lampdict["units_type"] == 1:
+        # feet
+        width_ft = lampdict["width"]
+        length_ft = lampdict["length"]
+        width_m = lampdict["width"] / 0.3048
+        length_m = lampdict["length"] / 0.3048
+    elif lampdict["units_type"] == 2:
+        # meters
         width_m = lampdict["width"]
         length_m = lampdict["length"]
-    elif lampdict["units_type"] == 2:
-        width_m = lampdict["width"] * 0.3048
-        length_m = lampdict["length"] * 0.3048
+        width_ft = lampdict["width"] * 0.3048
+        length_ft = lampdict["length"] * 0.3048
+    
+    width_in, length_in = width_ft * 12, length_ft * 12
 
-    area = width_m * length_m
     if units.lower() == "feet":
-        area = area / (0.3048 ** 2)
+        area = width_ft * length_ft
+    if units.lower() == "meters":
+        area = width_m * length_m
     if units.lower() == "inches":
-        area = area * 12 / (0.3048 ** 2)
+        area = width_in * length_in
     if verbose:
-        print("Area (cm2)", area * 100 * 100)
+        print("Area (cm2)", width_m * length_m * 100 * 100)
     return area
