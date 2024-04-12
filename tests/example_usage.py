@@ -28,7 +28,13 @@ x, y, z = get_coords(newthetas, newphis, which="cartesian")
 
 power = total_optical_power(filename)
 
-write_ies_data(lampdict,filename)
+newfile = 'write_test_original.ies'
+write_ies_data(filename=newfile, lampdict=lampdict, valkey='original_vals')
+read_ies_data(newfile)
+newfile = 'write_test_full.ies'
+write_ies_data(filename=newfile, lampdict=lampdict, valkey='original_vals')
+read_ies_data(newfile)
+
 
 # plot_ies(filename)
 print("Execution successful")
