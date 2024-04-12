@@ -51,14 +51,14 @@ def lamp_area(filename, units="meters", verbose=False):
         # feet
         width_ft = lampdict["width"]
         length_ft = lampdict["length"]
-        width_m = lampdict["width"] / 0.3048
-        length_m = lampdict["length"] / 0.3048
+        width_m = lampdict["width"] * 0.3048
+        length_m = lampdict["length"] * 0.3048
     elif lampdict["units_type"] == 2:
         # meters
         width_m = lampdict["width"]
         length_m = lampdict["length"]
-        width_ft = lampdict["width"] * 0.3048
-        length_ft = lampdict["length"] * 0.3048
+        width_ft = lampdict["width"] / 0.3048
+        length_ft = lampdict["length"] / 0.3048
     
     width_in, length_in = width_ft * 12, length_ft * 12
 

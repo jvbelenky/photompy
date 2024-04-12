@@ -12,7 +12,7 @@ def read_ies_data(path_to_file):
     lines = [line.strip() for line in lines]
 
     lampdict = {"source": path_to_file}
-    lampdict["Version"] = _get_version(lines)
+    lampdict["version"] = _get_version(lines)
 
     header = []
     for i, line in enumerate(lines):
@@ -57,9 +57,7 @@ def _get_version(lines):
         warnings.warn('File does not begin with "IES" and may be malformed')
     return version
 
-def _process_keywords(header,lampdict):
-
-    lampdict["header_string"] = header
+def _process_keywords(header, lampdict):
 
     # do some cleanup
     keylines = [line for line in header if line.startswith('[')]
@@ -90,10 +88,13 @@ def _process_keywords(header,lampdict):
             newkeys.append(keys[i])
             newvals.append(' '.join(vals[i:i+j+1]))
             continue
+    # deal with tilt
+    tiltline = [line for line in header if line.startswith('TILT')][0]
+    tiltkey, tiltval = tiltline.split('=')
+    newkeys.append(tiltkey)
+    newvals.append(tiltval)
     keyword_dict = dict(zip(newkeys,newvals))
-    
-    # combine dicts
-    lampdict = lampdict | keyword_dict
+    lampdict["keywords"] = keyword_dict
     return lampdict
 
 
@@ -101,7 +102,7 @@ def _process_header(data, lampdict):
     """
     Process the numeric, non-keyword header data
     """
-    
+
     lampdict["num_lamps"] = int(data[0])
     lampdict["lumens_per_lamp"] = float(data[1])
     lampdict["multiplier"] = float(data[2])

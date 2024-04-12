@@ -55,14 +55,19 @@ def write_ies_data(filename, lampdict, valkey="original_vals"):
     lampdict["num_vertical_angles"] = len(thetas)
     lampdict["num_horizontal_angles"] = len(phis)
 
+    # begin building string    
+    iesdata = lampdict['version']+"\r\n"
     # header
-    iesdata = ""
-    header = "\r\n".join(lampdict["header_string"]) + "\r\n"
-    row1 = list(lampdict.values())[15:26]
-    row2 = list(lampdict.values())[26:28]
-    header += " ".join([str(val) for val in row1]) + "\r\n"
-    header += " ".join([str(val) for val in row2]) + "\r\n"
-    iesdata += header
+    for key,val in lampdict['keywords'].items():
+        if key != 'TILT':
+            iesdata += '['+key+'] '+val+"\r\n"
+        else:
+            iesdata += key+'='+val+"\r\n"
+            
+    row1 = list(lampdict.values())[3:13]
+    row2 = list(lampdict.values())[13:16]
+    iesdata += " ".join([str(val) for val in row1]) + "\r\n"
+    iesdata += " ".join([str(val) for val in row2]) + "\r\n"
     # thetas and phis
     iesdata += _process_row(thetas)
     iesdata += _process_row(phis)
