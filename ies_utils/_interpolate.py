@@ -1,8 +1,34 @@
 import bisect
 import numpy as np
+from ._read import verify_valdict
 
 
-def get_intensity(theta, phi, thetamap, phimap, valuemap):
+def interpolate(valdict, num_thetas=181, num_phis=361):
+
+    """
+    Fill in the values of an .ies value dictionary with interpolation
+    Requires a lampdict with a `full vals` key
+    """
+
+    verify_valdict(valdict)
+    newthetas = np.linspace(0, 180, num_thetas)
+    newphis = np.linspace(0, 360, num_phis)
+
+    tgrid, pgrid = np.meshgrid(newthetas, newphis)
+    tflat, pflat = tgrid.flatten(), pgrid.flatten()
+
+    intensity = [get_intensity(t, p, valdict) for t, p in zip(tflat, pflat)]
+    newvalues = np.array(intensity).reshape(num_phis, num_thetas)
+
+    newdict = {}
+    newdict["thetas"] = newthetas
+    newdict["phis"] = newphis
+    newdict["values"] = newvalues
+
+    return newdict
+
+
+def get_intensity(theta, phi, valdict):
     """
     determine arbitrary intensity value anywhere on unit sphere
 
@@ -15,10 +41,13 @@ def get_intensity(theta, phi, thetamap, phimap, valuemap):
     """
     epsilon = np.finfo(np.float64).eps
 
+    thetamap = valdict["thetas"]
+    phimap = valdict["phis"]
+    valuemap = valdict["values"]
+
     if theta < 0 or theta > 180:
-        raise Exception(
-            "Theta must be >0 and <180 degrees, value provided was{:s}".format(theta)
-        )
+        msg = "Theta must be >0 and <180 degrees, {} was passed".format(theta)
+        raise ValueError(msg)
 
     if phi > 360 or phi < 0:
         phi = phi % 360
@@ -28,8 +57,6 @@ def get_intensity(theta, phi, thetamap, phimap, valuemap):
         phi += epsilon
     if theta == 0:
         theta += epsilon
-
-    valuemap = valuemap.reshape(phimap.shape[0], thetamap.shape[0])
 
     phi_idx1, phi_idx2 = _find_closest(phimap, phi)
     theta_idx1, theta_idx2 = _find_closest(thetamap, theta)

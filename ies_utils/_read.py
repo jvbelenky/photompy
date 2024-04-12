@@ -3,6 +3,39 @@ import warnings
 import numpy as np
 
 
+def read_ies_data(path_to_file):
+    """
+    main .ies file reading function
+    """
+    lines = _read_file(path_to_file)
+    lines = [line.strip() for line in lines]
+
+    lampdict = {"source": path_to_file}
+    lampdict["Version"] = _get_version(lines)
+
+    header = []
+    for i, line in enumerate(lines):
+        header.append(line)
+        if line.startswith("TILT="):
+            if line == "TILT=INCLUDE":
+                i = i + 5
+            else:
+                i = i + 1
+            break
+    # temp--currently just returns the whole header as a single string
+    lampdict = _process_keywords(header, lampdict)
+
+    # all remaining data should be numeric
+    data = " ".join(lines[i:]).split()
+    lampdict = _process_header(data, lampdict)
+
+    lampdict = _read_angles(data, lampdict)
+    lampdict = _get_lamp_type(lampdict)
+    lampdict = _format_angles(lampdict)
+
+    return lampdict
+
+
 def _read_file(path_to_file):
     filepath = Path(path_to_file)
     filetype = filepath.suffix.lower()
@@ -27,7 +60,8 @@ def _process_keywords(header, lampdict):
     """
     Placeholder. Eventually to be reformatted to properly capture keyword data.
     """
-    return header
+    lampdict["Keywords"] = header
+    return lampdict
 
 
 def _process_header(data, lampdict):
@@ -76,6 +110,8 @@ def _read_angles(data, lampdict):
     values = np.array(list(map(float, vals)))
     valdict["values"] = values.reshape(num_phis, num_thetas)
 
+    verify_valdict(valdict)
+
     lampdict["original_vals"] = valdict
 
     return lampdict
@@ -102,7 +138,7 @@ def _get_lamp_type(lampdict):
             warnings.warn(msg)
         lamp_type = "C"
         if phis[-1] not in [0, 90, 180, 360]:
-            msg =  "Listed photometric type does not match last horizontal \
+            msg = "Listed photometric type does not match last horizontal \
                 angle value. Values will not be mirrored."
             warnings.warn(msg)
         for val in [0, 90, 180, 360]:
@@ -132,8 +168,10 @@ def _get_lamp_type(lampdict):
     # list only currently supported lamp types
     if lamp_type not in ["C0", "C90", "C180", "C360"]:
         msg = "Photometry type {} not currently supported. \
-            Values will not be mirrored.".format(lamp_type)
-        warnings.warn(msg) 
+            Values will not be mirrored.".format(
+            lamp_type
+        )
+        warnings.warn(msg)
 
     lampdict["lamp_type"] = lamp_type
 
@@ -154,7 +192,7 @@ def _format_angles(lampdict):
 
     valdict = lampdict["original_vals"]
     lamp_type = lampdict["lamp_type"]
-    
+
     newthetas = valdict["thetas"].copy()
 
     if lamp_type == "C0":
@@ -204,40 +242,34 @@ def _format_angles(lampdict):
 
     # use candela multiplier
     mult = lampdict["multiplier"]
-    
-    newdict["values"] = newvals*mult
+
+    newdict["values"] = newvals * mult
     newdict["phis"] = newphis
     newdict["thetas"] = newthetas
+
+    verify_valdict(newdict)
 
     lampdict["full_vals"] = newdict
 
     return lampdict
 
 
-def read_ies_data(path_to_file):
-    lines = _read_file(path_to_file)
-    lines = [line.strip() for line in lines]
+def verify_valdict(valdict):
+    """
+    verify that dictionary of thetas, phis, and candela values is in order
+    """
+    keys = list(valdict.keys())
+    if not all(x in keys for x in ["thetas", "phis", "values"]):
+        raise KeyError
 
-    lampdict = {"source": path_to_file}
-    lampdict["Version"] = _get_version(lines)
+    thetas = valdict["thetas"]
+    phis = valdict["phis"]
+    values = valdict["values"]
 
-    header = []
-    for i, line in enumerate(lines):
-        header.append(line)
-        if line.startswith('TILT='):
-            if line=='TILT=INCLUDE':
-                i=i+5
-            else:
-                i=i+1
-            break
-    lampdict["Header"] = _process_keywords(header, lampdict)
-
-    # all remaining data should be numeric
-    data = " ".join(lines[i:]).split()
-    lampdict = _process_header(data, lampdict)
-
-    lampdict = _read_angles(data, lampdict)
-    lampdict = _get_lamp_type(lampdict)
-    lampdict = _format_angles(lampdict)
-
-    return lampdict
+    # verify data shape
+    if not values.shape == (len(phis), len(thetas)):
+        msg = "Shape of candela values {} does not match number of vertical and \
+            horizontal angles {}".format(
+            values.shape, (len(phis), len(thetas))
+        )
+        raise ValueError(msg)
