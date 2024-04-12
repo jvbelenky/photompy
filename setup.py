@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     setup(
         name="ies_utils",
         url="https://github.com/jvbelenky/ies_utils",
-        version="0.0.1",
+        version="0.0.2",
         author="J. Vivian Belenky",
         author_email="j.vivian.belenky@outlook.com",
         description="Utility package for handling .ies (Illuminating Engineering Society) files",

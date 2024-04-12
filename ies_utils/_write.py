@@ -57,9 +57,9 @@ def write_ies_data(filename, lampdict, valkey="original_vals"):
 
     # header
     iesdata = ""
-    header = "\r\n".join(lampdict["Keywords"]) + "\r\n"
-    row1 = list(lampdict.values())[3:13]
-    row2 = list(lampdict.values())[13:16]
+    header = "\r\n".join(lampdict["header_string"]) + "\r\n"
+    row1 = list(lampdict.values())[15:26]
+    row2 = list(lampdict.values())[26:28]
     header += " ".join([str(val) for val in row1]) + "\r\n"
     header += " ".join([str(val) for val in row2]) + "\r\n"
     iesdata += header

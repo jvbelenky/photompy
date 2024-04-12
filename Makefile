@@ -37,6 +37,6 @@ clean:
 
 ## Try the example usage
 test: 
-	$(PYTHON_INTERPRETER) tests/example_usage.py tests/LLIA001477-003.ies
+	$(PYTHON_INTERPRETER) tests/example_usage.py tests/ies_files/LLIA001477-003.ies
 
 all: install test clean

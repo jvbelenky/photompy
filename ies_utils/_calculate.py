@@ -3,9 +3,14 @@ from ._interpolate import interpolate
 from ._read import read_ies_data
 
 
-def total_optical_power(filename, num_thetas=181, num_phis=361):
+def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
     """
     calculate the total optical power of a lamp given an .ies file
+    
+    filename: .ies file to calculate from
+    num_thetas: number of vertical angles to interpolate between
+    num_phis: number of horizontal angles to interpolate between
+    distance: lamp distance from sensor, in meters. Generally 1. 
     """
 
     # load
@@ -24,7 +29,7 @@ def total_optical_power(filename, num_thetas=181, num_phis=361):
     # convert to radians
     dTheta_rad = np.radians(theta_deg[1] - theta_deg[0])
     dPhi_rad = np.radians(phi_deg[1] - phi_deg[0])
-    dA = np.sin(np.radians(Theta_deg)) * dTheta_rad * dPhi_rad
+    dA = distance**2 * np.sin(np.radians(Theta_deg)) * dTheta_rad * dPhi_rad
 
     total_power = (interp_dict["values"] * dA).sum()
 

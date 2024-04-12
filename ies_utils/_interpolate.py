@@ -7,7 +7,7 @@ def interpolate(valdict, num_thetas=181, num_phis=361):
 
     """
     Fill in the values of an .ies value dictionary with interpolation
-    Requires a lampdict with a `full vals` key
+    Requires a lampdict with a `full_vals` key
     """
 
     verify_valdict(valdict)

@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections import Counter
 import warnings
 import numpy as np
 
@@ -29,6 +30,7 @@ def read_ies_data(path_to_file):
     data = " ".join(lines[i:]).split()
     lampdict = _process_header(data, lampdict)
 
+    lampdict['lamp_type'] = '?' # setting this here for readability
     lampdict = _read_angles(data, lampdict)
     lampdict = _get_lamp_type(lampdict)
     lampdict = _format_angles(lampdict)
@@ -40,7 +42,7 @@ def _read_file(path_to_file):
     filepath = Path(path_to_file)
     filetype = filepath.suffix.lower()
     if filetype != ".ies":
-        raise Exception("File must be .ies, not {:s}".format(filetype))
+        raise Exception("File must be .ies, not {}".format(filetype))
     string = filepath.read_text()
     lines = string.split("\n")
 
@@ -55,12 +57,43 @@ def _get_version(lines):
         warnings.warn('File does not begin with "IES" and may be malformed')
     return version
 
+def _process_keywords(header,lampdict):
 
-def _process_keywords(header, lampdict):
-    """
-    Placeholder. Eventually to be reformatted to properly capture keyword data.
-    """
-    lampdict["Keywords"] = header
+    lampdict["header_string"] = header
+
+    # do some cleanup
+    keylines = [line for line in header if line.startswith('[')]
+    keys = [line.split('] ')[0].strip('[') for line in keylines]
+    vals = [''.join(line.split('] ')[1:]) for line in keylines]
+
+    # make all keys unique
+    non_unique_keys = [k for (k,v) in Counter(keys).items() if v > 1 and k!='MORE']
+    for degen_key in non_unique_keys:
+        j=1
+        for i,key in enumerate(keys):
+            if key==degen_key:
+                keys[i] = degen_key+'-'+str(j)
+                j+=1
+
+    # combine all the MORE lines into single strings
+    newkeys,newvals = [], [] 
+    for i in range(len(keylines)):
+        j=0
+        try:
+            if keys[i]=='MORE':
+                continue
+            while keys[i+j+1]=='MORE':            
+                j+=1
+            newkeys.append(keys[i])
+            newvals.append(' '.join(vals[i:i+j+1]))
+        except IndexError:        
+            newkeys.append(keys[i])
+            newvals.append(' '.join(vals[i:i+j+1]))
+            continue
+    keyword_dict = dict(zip(newkeys,newvals))
+    
+    # combine dicts
+    lampdict = lampdict | keyword_dict
     return lampdict
 
 
@@ -68,7 +101,7 @@ def _process_header(data, lampdict):
     """
     Process the numeric, non-keyword header data
     """
-
+    
     lampdict["num_lamps"] = int(data[0])
     lampdict["lumens_per_lamp"] = float(data[1])
     lampdict["multiplier"] = float(data[2])
@@ -243,9 +276,10 @@ def _format_angles(lampdict):
     # use candela multiplier
     mult = lampdict["multiplier"]
 
-    newdict["values"] = newvals * mult
-    newdict["phis"] = newphis
+
     newdict["thetas"] = newthetas
+    newdict["phis"] = newphis
+    newdict["values"] = newvals * mult
 
     verify_valdict(newdict)
 
