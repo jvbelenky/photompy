@@ -6,7 +6,7 @@ from ._read import read_ies_data
 
 def plot_ies(
     filename,
-    which="full",
+    which="interpolated",
     elev=-90,
     azim=90,
     title="",
@@ -17,10 +17,12 @@ def plot_ies(
 ):
     """
     central plotting function
+    
+    TODO: make it possible to pass fig, ax arguments to this function
     """
 
-    if which.lower() not in ["original", "extended", "full"]:
-        msg = "Argument `which` must be in [`original`, `extended`, `full`]"
+    if which.lower() not in ["original","full", "interpolated"]:
+        msg = "Argument `which` must be in [`original`, `full`, `interpolated`]"
         raise KeyError(msg)
 
     lampdict = read_ies_data(filename)
@@ -32,17 +34,17 @@ def plot_ies(
         x, y, z = get_coords(thetas, phis, which="cartesian")
         intensity = values.flatten()
 
-    elif which.lower() == "extended":
-        thetas = lampdict["extended_vals"]["thetas"]
-        phis = lampdict["extended_vals"]["phis"]
-        values = lampdict["extended_vals"]["values"]
+    elif which.lower() == "full":
+        thetas = lampdict["full_vals"]["thetas"]
+        phis = lampdict["full_vals"]["phis"]
+        values = lampdict["full_vals"]["values"]
         x, y, z = get_coords(thetas, phis, which="cartesian")
         intensity = values.flatten()
 
-    elif which.lower() == "full":
-        thetamap = lampdict["extended_vals"]["thetas"]
-        phimap = lampdict["extended_vals"]["phis"]
-        valuemap = lampdict["extended_vals"]["values"].reshape(
+    elif which.lower() == "interpolated":
+        thetamap = lampdict["full_vals"]["thetas"]
+        phimap = lampdict["full_vals"]["phis"]
+        valuemap = lampdict["full_vals"]["values"].reshape(
             len(phimap), len(thetamap)
         )
 
@@ -65,6 +67,7 @@ def plot_ies(
         azim=azim,
         title=title,
         figsize=figsize,
+        show_cbar=show_cbar,
         alpha=alpha,
         cmap=cmap,
     )

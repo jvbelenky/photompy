@@ -9,9 +9,9 @@ else:
 
 lampdict = read_ies_data(filename)
 
-thetamap = lampdict["extended_vals"]["thetas"]
-phimap = lampdict["extended_vals"]["phis"]
-valuemap = lampdict["extended_vals"]["values"].reshape(len(phimap), len(thetamap))
+thetamap = lampdict["full_vals"]["thetas"]
+phimap = lampdict["full_vals"]["phis"]
+valuemap = lampdict["full_vals"]["values"].reshape(len(phimap), len(thetamap))
 
 # make up some test values
 newthetas = np.linspace(0, 180, 100)

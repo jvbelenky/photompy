@@ -8,9 +8,9 @@ def total_optical_power(filename, num=100):
     calculate the total optical power of a lamp given an .ies file
     """
     lampdict = read_ies_data(filename)
-    thetamap = lampdict["extended_vals"]["thetas"]
-    phimap = lampdict["extended_vals"]["phis"]
-    valuemap = lampdict["extended_vals"]["values"].reshape(len(phimap), len(thetamap))
+    thetamap = lampdict["full_vals"]["thetas"]
+    phimap = lampdict["full_vals"]["phis"]
+    valuemap = lampdict["full_vals"]["values"].reshape(len(phimap), len(thetamap))
 
     # ies file is in degrees
     theta_deg = np.linspace(0, 180, num=num)

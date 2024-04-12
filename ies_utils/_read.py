@@ -90,7 +90,6 @@ def _get_lamp_type(lampdict):
     Currently, only "C" photometries are supported.
     """
 
-    extend_values = False
     lamp_type = "?"
 
     phis = lampdict["original_vals"]["phis"]
@@ -98,51 +97,45 @@ def _get_lamp_type(lampdict):
 
     if photometry == 1:
         if phis[0] != 0:
-            warnings.warn(
-                "Listed photometric type does not match first horizontal \
+            msg = "Listed photometric type does not match first horizontal \
                 angle value. Values will not be mirrored."
-            )
+            warnings.warn(msg)
         lamp_type = "C"
         if phis[-1] not in [0, 90, 180, 360]:
-            warnings.warn(
-                "Listed photometric type does not match last horizontal \
+            msg =  "Listed photometric type does not match last horizontal \
                 angle value. Values will not be mirrored."
-            )
+            warnings.warn(msg)
         for val in [0, 90, 180, 360]:
             if phis[-1] == val:
                 lamp_type += str(val)
-                extend_values = True
     elif photometry in [2, 3]:
         if photometry == 2:
             lamp_type = "B"
         elif photometry == 3:
             lamp_type = "A"
         if phis[-1] != 90:
-            warnings.warn(
-                "Listed photometric type does not match last horizontal \
+            msg = "Listed photometric type does not match last horizontal \
                 angle value. Values will not be mirrored."
-            )
+            warnings.warn(msg)
         if phis[0] not in [-90, 0]:
-            warnings.warn(
-                "Listed photometric type does not match first horizontal \
+            msg = "Listed photometric type does not match first horizontal \
                 angle value. Values will not be mirrored."
-            )
+            warnings.warn(msg)
         for val in [-90, 0]:
             if phis[0] == val:
                 lamp_type += str(val)
-                extend_values = True
     else:
-        warnings.warn(
-            "Photometry type could not be determined. \
+        msg = "Photometry type could not be determined. \
             Values will not be mirrored."
-        )
+        warnings.warn(msg)
 
     # list only currently supported lamp types
     if lamp_type not in ["C0", "C90", "C180", "C360"]:
-        extend_values = False
+        msg = "Photometry type {} not currently supported. \
+            Values will not be mirrored.".format(lamp_type)
+        warnings.warn(msg) 
 
     lampdict["lamp_type"] = lamp_type
-    lampdict["extend_values"] = extend_values
 
     return lampdict
 
@@ -157,11 +150,11 @@ def _format_angles(lampdict):
     """
 
     newdict = {}
-    lampdict["extended_vals"] = {}
+    lampdict["full_vals"] = {}
 
     valdict = lampdict["original_vals"]
     lamp_type = lampdict["lamp_type"]
-
+    
     newthetas = valdict["thetas"].copy()
 
     if lamp_type == "C0":
@@ -202,17 +195,21 @@ def _format_angles(lampdict):
         vals2 = np.flip(values, axis=0)
         newvals = np.concatenate((vals1, vals2))
 
-    elif lamp_type == "C360":
-        # no symmetry; extended values are identical to original values
+    else:
+        # either lamp_type is C360 (original vals already fully extended)
+        # or lamp type is not supported
         newphis = valdict["phis"].copy()
         newthetas = valdict["thetas"].copy()
         newvals = valdict["values"].copy()
 
+    # use candela multiplier
+    mult = lampdict["multiplier"]
+    
+    newdict["values"] = newvals*mult
     newdict["phis"] = newphis
     newdict["thetas"] = newthetas
-    newdict["values"] = newvals
 
-    lampdict["extended_vals"] = newdict
+    lampdict["full_vals"] = newdict
 
     return lampdict
 
@@ -241,8 +238,6 @@ def read_ies_data(path_to_file):
 
     lampdict = _read_angles(data, lampdict)
     lampdict = _get_lamp_type(lampdict)
-
-    if lampdict["extend_values"]:
-        lampdict = _format_angles(lampdict)
+    lampdict = _format_angles(lampdict)
 
     return lampdict

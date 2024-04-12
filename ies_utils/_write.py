@@ -32,7 +32,7 @@ def _process_row(row,sigfigs=2):
         if total>76:
             newstring += '\r\n'
             total = 0
-        numberstring = str(round(number,sigfigs))#f'{number:.2f}'
+        numberstring = str(round(number,sigfigs))
         newstring += numberstring
         total += len(numberstring)
         if i!=len(row)-1: 
