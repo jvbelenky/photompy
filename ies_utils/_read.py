@@ -2,9 +2,10 @@ from pathlib import Path
 from collections import Counter
 import warnings
 import numpy as np
+from ._interpolate import interpolate_values
 
 
-def read_ies_data(path_to_file):
+def read_ies_data(path_to_file, extend=True, interpolate=True):
     """
     main .ies file reading function
     """
@@ -30,10 +31,14 @@ def read_ies_data(path_to_file):
     data = " ".join(lines[i:]).split()
     lampdict = _process_header(data, lampdict)
 
-    lampdict['lamp_type'] = '?' # setting this here for readability
+    lampdict["lamp_type"] = "?"  # setting this here for readability
     lampdict = _read_angles(data, lampdict)
     lampdict = _get_lamp_type(lampdict)
-    lampdict = _format_angles(lampdict)
+
+    if extend:
+        _format_angles(lampdict)
+    if interpolate:
+        interpolate_values(lampdict)
 
     return lampdict
 
@@ -57,43 +62,43 @@ def _get_version(lines):
         warnings.warn('File does not begin with "IES" and may be malformed')
     return version
 
-def _process_keywords(header, lampdict):
 
+def _process_keywords(header, lampdict):
     # do some cleanup
-    keylines = [line for line in header if line.startswith('[')]
-    keys = [line.split('] ')[0].strip('[') for line in keylines]
-    vals = [''.join(line.split('] ')[1:]) for line in keylines]
+    keylines = [line for line in header if line.startswith("[")]
+    keys = [line.split("]")[0].strip("[") for line in keylines]
+    vals = ["".join(line.split("]")[1:]) for line in keylines]
 
     # make all keys unique
-    non_unique_keys = [k for (k,v) in Counter(keys).items() if v > 1 and k!='MORE']
+    non_unique_keys = [k for (k, v) in Counter(keys).items() if v > 1 and k != "MORE"]
     for degen_key in non_unique_keys:
-        j=1
-        for i,key in enumerate(keys):
-            if key==degen_key:
-                keys[i] = degen_key+'-'+str(j)
-                j+=1
+        j = 1
+        for i, key in enumerate(keys):
+            if key == degen_key:
+                keys[i] = degen_key + "-" + str(j)
+                j += 1
 
     # combine all the MORE lines into single strings
-    newkeys,newvals = [], [] 
+    newkeys, newvals = [], []
     for i in range(len(keylines)):
-        j=0
+        j = 0
         try:
-            if keys[i]=='MORE':
+            if keys[i] == "MORE":
                 continue
-            while keys[i+j+1]=='MORE':            
-                j+=1
+            while keys[i + j + 1] == "MORE":
+                j += 1
             newkeys.append(keys[i])
-            newvals.append(' '.join(vals[i:i+j+1]))
-        except IndexError:        
+            newvals.append(" ".join(vals[i : i + j + 1]))
+        except IndexError:
             newkeys.append(keys[i])
-            newvals.append(' '.join(vals[i:i+j+1]))
+            newvals.append(" ".join(vals[i : i + j + 1]))
             continue
     # deal with tilt
-    tiltline = [line for line in header if line.startswith('TILT')][0]
-    tiltkey, tiltval = tiltline.split('=')
+    tiltline = [line for line in header if line.startswith("TILT")][0]
+    tiltkey, tiltval = tiltline.split("=")
     newkeys.append(tiltkey)
     newvals.append(tiltval)
-    keyword_dict = dict(zip(newkeys,newvals))
+    keyword_dict = dict(zip(newkeys, newvals))
     lampdict["keywords"] = keyword_dict
     return lampdict
 
@@ -276,7 +281,6 @@ def _format_angles(lampdict):
 
     # use candela multiplier
     mult = lampdict["multiplier"]
-
 
     newdict["thetas"] = newthetas
     newdict["phis"] = newphis

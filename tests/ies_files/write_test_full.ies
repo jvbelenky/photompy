@@ -1,16 +1,16 @@
 IESNA:LM-63-2002
-[TEST] LLIA001477-003
-[TESTLAB] LightLab International Allentown, LLC
-[ISSUEDATE] 7/23/2021
-[MANUFAC] R-Zero Systems, Inc.
-[LUMCAT] Lumenizer 300 45deg
-[LUMINAIRE] Molded plastic housing with internal fan and unmarked control circuit
-[LAMP] Three Excimer lamps tilted in 45 degree position
-[OTHER-1]  120.0Vac, 60.00Hz, 0.4679A, 55.70W, 0.992PF, 5.2%THD(i)
-[OTHER-2] File format is based on IES LM-63-02 with modifications necessary for use in standard UVGI applications software.  Intensity values in this file are expressed in mW/sr.
-[OTHER-3] This test was performed using the absolute method of radiometry. Lamp lumens field was set to -1
-[_INTENSITYUNITS]   mW/sr
-[_RADIATIONTYPE]    UVC 222
+[TEST]  LLIA001477-003
+[TESTLAB]  LightLab International Allentown, LLC
+[ISSUEDATE]  7/23/2021
+[MANUFAC]  R-Zero Systems, Inc.
+[LUMCAT]  Lumenizer 300 45deg
+[LUMINAIRE]  Molded plastic housing with internal fan and  unmarked control circuit
+[LAMP]  Three Excimer lamps tilted in 45 degree position
+[OTHER-1]   120.0Vac, 60.00Hz, 0.4679A, 55.70W, 0.992PF, 5.2%THD(i)
+[OTHER-2]  File format is based on IES LM-63-02 with modifications necessary  for use in standard UVGI applications software.   Intensity values in this file are expressed in mW/sr.
+[OTHER-3]  This test was performed using the absolute method of radiometry.  Lamp lumens field was set to -1
+[_INTENSITYUNITS]    mW/sr
+[_RADIATIONTYPE]     UVC 222
 TILT=NONE
 1 -1.0 1.0 361 17 1 1 0.813 0.063 0.0
 1.0 1.0 55.695

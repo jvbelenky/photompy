@@ -1,16 +1,25 @@
-import bisect
 import numpy as np
-from ._read import verify_valdict
+import bisect
+import warnings
 
 
-def interpolate(valdict, num_thetas=181, num_phis=361):
-
+def interpolate_values(lampdict, num_thetas=181, num_phis=361, overwrite=False):
     """
     Fill in the values of an .ies value dictionary with interpolation
     Requires a lampdict with a `full_vals` key
     """
 
-    verify_valdict(valdict)
+    if "interp_vals" in list(lampdict.keys()):
+        if overwrite:
+            msg = "Interpolated dictionary already exists, but will be overwritten."
+            warnings.warn(msg)
+        else:
+            msg = "Interpolated dictionary already exists. New interpolation not performed."
+            warnings.warn(msg)
+            return lampdict
+
+    valdict = lampdict["full_vals"]
+
     newthetas = np.linspace(0, 180, num_thetas)
     newphis = np.linspace(0, 360, num_phis)
 
@@ -25,7 +34,9 @@ def interpolate(valdict, num_thetas=181, num_phis=361):
     newdict["phis"] = newphis
     newdict["values"] = newvalues
 
-    return newdict
+    lampdict["interp_vals"] = newdict
+
+    return lampdict
 
 
 def get_intensity(theta, phi, valdict):

@@ -6,7 +6,7 @@ from ies_utils import (
     plot_ies,
     total_optical_power,
     lamp_area,
-    interpolate
+    interpolate_values
 )
 
 if len(sys.argv) > 1:
@@ -22,8 +22,8 @@ power = total_optical_power(filename)
 m = lamp_area(filename, units="meters")
 
 # interpolate
-valdict = lampdict['full_vals']
-interpdict = interpolate(valdict,num_thetas=181,num_phis=361)
+interpolate_values(lampdict, num_thetas=181,num_phis=361)
+interpdict = lampdict['interp_vals']
 
 # write to new file
 newfile = Path("tests/ies_files/write_test_original.ies")

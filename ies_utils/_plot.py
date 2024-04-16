@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ._interpolate import interpolate
+from ._interpolate import interpolate_values
 from ._read import read_ies_data
 
 
@@ -24,14 +24,13 @@ def plot_ies(
         raise KeyError(msg)
 
     lampdict = read_ies_data(filename)
-
     if which.lower() == "original":
         valdict = lampdict["original_vals"]
     elif which.lower() == "full":
         valdict = lampdict["full_vals"]
     elif which.lower() == "interpolated":
-        tempdict = lampdict["full_vals"]
-        valdict = interpolate(tempdict)
+        interpolate_values(lampdict)
+        valdict = lampdict["interp_vals"]
 
     plot_valdict(
         valdict=valdict,

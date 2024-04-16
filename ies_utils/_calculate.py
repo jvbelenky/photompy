@@ -1,16 +1,16 @@
 import numpy as np
-from ._interpolate import interpolate
+from ._interpolate import interpolate_values
 from ._read import read_ies_data
 
 
 def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
     """
     calculate the total optical power of a lamp given an .ies file
-    
+
     filename: .ies file to calculate from
     num_thetas: number of vertical angles to interpolate between
     num_phis: number of horizontal angles to interpolate between
-    distance: lamp distance from sensor, in meters. Generally 1. 
+    distance: lamp distance from sensor, in meters. Generally 1.
     """
 
     # load
@@ -18,7 +18,11 @@ def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
     valdict = lampdict["full_vals"]
 
     # interpolate
-    interp_dict = interpolate(valdict, num_thetas, num_phis)
+    try:
+        interp_dict = lampdict["interp_vals"]
+    except KeyError:
+        interpolate_values(lampdict, num_thetas=num_thetas, num_phis=num_phis)
+        interp_dict = lampdict["interp_vals"]
 
     # ies file is in degrees
     theta_deg = interp_dict["thetas"]
@@ -37,7 +41,6 @@ def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
 
 
 def lamp_area(filename, units="meters", verbose=False):
-
     """
     return lamp area in units of m^2, ft^2 or in^2
     """
@@ -59,7 +62,7 @@ def lamp_area(filename, units="meters", verbose=False):
         length_m = lampdict["length"]
         width_ft = lampdict["width"] / 0.3048
         length_ft = lampdict["length"] / 0.3048
-    
+
     width_in, length_in = width_ft * 12, length_ft * 12
 
     if units.lower() == "feet":
