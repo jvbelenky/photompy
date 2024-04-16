@@ -24,16 +24,16 @@ def read_ies_data(path_to_file, extend=True, interpolate=True):
             else:
                 i = i + 1
             break
-    # temp--currently just returns the whole header as a single string
-    lampdict = _process_keywords(header, lampdict)
+    
+    _process_keywords(header, lampdict)
 
     # all remaining data should be numeric
     data = " ".join(lines[i:]).split()
-    lampdict = _process_header(data, lampdict)
+    _process_header(data, lampdict)
 
     lampdict["lamp_type"] = "?"  # setting this here for readability
-    lampdict = _read_angles(data, lampdict)
-    lampdict = _get_lamp_type(lampdict)
+    _read_angles(data, lampdict)
+    _get_lamp_type(lampdict)
 
     if extend:
         _format_angles(lampdict)
