@@ -78,8 +78,8 @@ Some plotting functions are provided for quickly visualizing a file. The default
 An alternative cartesian plotting function is provided and maybe be useful for those less familiar with polar plots to quickly gut-check any changes made to a file:
 
 	plot_ies(filename, type="cartesian", "original")
-	plot_ies(filename, "full", elev=90, azim=45)
-	plot_ies(filename, "interpolated", title="Interpolated", show_cbar=True)
+	plot_ies(filename, type="cartesian", "full", elev=90, azim=45)
+	plot_ies(filename, type="cartesian", "interpolated", title="Interpolated", show_cbar=True)
 
 
 Any dictionary that has keys `thetas`, `phis`, and `values`, where `values` contains a numpy array of shape `( len(phis), len(thetas) )` can also be quickly plotted with `plot_valdict_cartesian` or `plot_valdict_polar` 
