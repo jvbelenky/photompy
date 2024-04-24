@@ -1,15 +1,6 @@
 import sys
 from pathlib import Path
-from ies_utils import (
-    read_ies_data,
-    write_ies_data,
-    plot_ies,
-    total_optical_power,
-    lamp_area,
-    interpolate_values,
-    plot_valdict_polar,
-    plot_valdict_cartesian,
-)
+from ies_utils import *
 
 if len(sys.argv) > 1:
     filename = Path(sys.argv[1])

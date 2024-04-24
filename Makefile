@@ -18,6 +18,7 @@ endif
 
 ## Install package
 install:
+	rm -rf dist build */*.egg-info *.egg-info
 	$(PYTHON_INTERPRETER) setup.py sdist
 	pip install .
 
@@ -37,6 +38,6 @@ clean:
 
 ## Try the example usage
 test: 
-	$(PYTHON_INTERPRETER) tests/example_usage.py tests/ies_files/LLIA001477-003.ies
+	$(PYTHON_INTERPRETER) ./tests/example_usage.py tests/ies_files/LLIA001477-003.ies
 
 all: install test clean

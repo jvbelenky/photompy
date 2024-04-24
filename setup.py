@@ -16,11 +16,12 @@ with open("README.md", "r") as fh:
             "Operating System :: OS Independent",
             "License :: OSI Approved :: MIT License",
         ],
+        packages=find_packages('src'),
+        package_dir={'': 'src'},
         zip_safe=True,
         python_requires=">=3.8",
         install_requires=[
             "numpy",
             "matplotlib",
         ],
-        packages=find_packages(),
     )
