@@ -24,7 +24,7 @@ def read_ies_data(path_to_file, extend=True, interpolate=True):
             else:
                 i = i + 1
             break
-    
+
     _process_keywords(header, lampdict)
 
     # all remaining data should be numeric
@@ -55,11 +55,11 @@ def _read_file(path_to_file):
 
 
 def _get_version(lines):
-    if lines[0].startswith("IES"):
+    if lines[0].startswith("IESNA"):
         version = lines[0]
     else:
         version = "Not specified"
-        warnings.warn('File does not begin with "IES" and may be malformed')
+        warnings.warn('File does not begin with "IESNA" and may be malformed')
     return version
 
 
@@ -88,10 +88,12 @@ def _process_keywords(header, lampdict):
             while keys[i + j + 1] == "MORE":
                 j += 1
             newkeys.append(keys[i])
-            newvals.append(" ".join(vals[i : i + j + 1]))
+            k = i + j + 1
+            newvals.append(" ".join(vals[i:k]))
         except IndexError:
             newkeys.append(keys[i])
-            newvals.append(" ".join(vals[i : i + j + 1]))
+            k = i + j + 1
+            newvals.append(" ".join(vals[i:k]))
             continue
     # deal with tilt
     tiltline = [line for line in header if line.startswith("TILT")][0]

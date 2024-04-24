@@ -1,15 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
+import warnings
 from ._interpolate import interpolate_values
 from ._read import read_ies_data
 
 
 def plot_ies(
     filename,
+    plot_type="polar",
     which="interpolated",
     elev=-90,
     azim=90,
-    title="",
+    title=None,
     figsize=(6, 4),
     show_cbar=False,
     alpha=0.7,
@@ -20,9 +23,14 @@ def plot_ies(
     """
 
     if which.lower() not in ["original", "full", "interpolated"]:
-        msg = "Arg `which` must be in [`original`, `full`, `interpolated`]"
+        msg = "`which` must be in [`original`, `full`, `interpolated`]"
         raise KeyError(msg)
 
+    if plot_type.lower() not in ["polar", "cartesian"]:
+        msg = "`plot_type` must be in [`polar`, `cartesian`]"
+        raise KeyError(msg)
+
+    # read
     lampdict = read_ies_data(filename)
     if which.lower() == "original":
         valdict = lampdict["original_vals"]
@@ -32,19 +40,99 @@ def plot_ies(
         interpolate_values(lampdict)
         valdict = lampdict["interp_vals"]
 
-    plot_valdict(
-        valdict=valdict,
-        elev=elev,
-        azim=azim,
-        title=title,
-        figsize=figsize,
-        show_cbar=show_cbar,
-        alpha=alpha,
-        cmap=cmap,
-    )
+    if title is None:
+        title = Path(filename).stem
+
+    if plot_type == "polar":
+        fig, ax = plot_valdict_polar(valdict=valdict, title=title, figsize=figsize)
+
+    elif plot_type == "cartesian":
+
+        plot_valdict_cartesian(
+            valdict=valdict,
+            elev=elev,
+            azim=azim,
+            title=title,
+            figsize=figsize,
+            show_cbar=show_cbar,
+            alpha=alpha,
+            cmap=cmap,
+        )
 
 
-def plot_valdict(
+def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
+    values = valdict["values"]
+    thetas = valdict["thetas"]
+    phis = valdict["phis"]
+
+    fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=figsize)
+
+    # left and right 'sides' of the plot
+    theta1 = np.radians(thetas)
+    theta2 = np.radians((thetas + 180)[1:])
+
+    # c0-c180
+    try:
+        r1 = values[phis == 0][0]
+        ax.plot(theta1, r1, color="red", label="C0° - C180°")
+    except IndexError:
+        msg = "Phi values for 0 degrees not found"
+        warnings.warn(msg)
+    try:
+        r2 = values[phis == 180][0]
+        r2 = np.flip(r2)[1:]
+        ax.plot(theta2, r2, color="red", label="C0° - C180°")
+    except IndexError:
+        msg = "Phi values for 180 degrees not found"
+        warnings.warn(msg)
+
+    # c90-c270
+    try:
+        r3 = values[phis == 90][0]
+        ax.plot(theta1, r3, color="blue", label="C90° - C270°")
+    except IndexError:
+        msg = "Phi values for 90 degrees not found"
+        warnings.warn(msg)
+    try:
+        r4 = values[phis == 270][0]
+        r4 = np.flip(r4)[1:]
+        ax.plot(theta2, r4, color="blue", label="C90° - C270°")
+    except IndexError:
+        msg = "Phi values for 90 degrees not found"
+        warnings.warn(msg)
+
+    # max candela
+    max_candela_phi = phis[np.argmax(np.max(values, axis=1))]
+    if max_candela_phi not in [0, 90, 180, 270]:
+        r5 = values[phis == max_candela_phi][0]
+        label = "Max Candela: " + str(max_candela_phi) + "°"
+        ax.plot(theta1, r5, color="purple", label=label)
+
+    # plot formatting
+    ax.set_theta_zero_location("S")
+    ax.set_rlabel_position(0)  # Move radial labels away from plotted line
+    plt.setp(ax.get_yticklabels(), alpha=0.5, rotation=45, fontsize=9)
+    ax.grid(True)
+    ax.set_title(title)
+
+    # relabel tick marks
+    labs = ax.get_xticklabels()[0:5]
+    morelabs = labs.copy()
+    morelabs.reverse()
+    newlabs = labs[:-1] + morelabs[:-1]
+    ax.set_xticks(ax.get_xticks())
+    ax.set_xticklabels(newlabs)
+
+    # legend
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys(), bbox_to_anchor=[0, 0, 0.2, 0.05])
+    plt.show()
+    
+    return fig, ax
+
+
+def plot_valdict_cartesian(
     valdict,
     elev=-90,
     azim=90,

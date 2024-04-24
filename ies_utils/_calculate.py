@@ -15,7 +15,6 @@ def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
 
     # load
     lampdict = read_ies_data(filename)
-    valdict = lampdict["full_vals"]
 
     # interpolate
     try:
@@ -33,7 +32,7 @@ def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
     # convert to radians
     dTheta_rad = np.radians(theta_deg[1] - theta_deg[0])
     dPhi_rad = np.radians(phi_deg[1] - phi_deg[0])
-    dA = distance**2 * np.sin(np.radians(Theta_deg)) * dTheta_rad * dPhi_rad
+    dA = distance ** 2 * np.sin(np.radians(Theta_deg)) * dTheta_rad * dPhi_rad
 
     total_power = (interp_dict["values"] * dA).sum()
 
