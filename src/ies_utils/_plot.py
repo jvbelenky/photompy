@@ -37,8 +37,11 @@ def plot_ies(
     elif which.lower() == "full":
         valdict = lampdict["full_vals"]
     elif which.lower() == "interpolated":
-        interpolate_values(lampdict)
-        valdict = lampdict["interp_vals"]
+        try:
+            valdict = lampdict["interp_vals"]
+        except KeyError:
+            interpolate_values(lampdict)
+            valdict = lampdict["interp_vals"]
 
     if title is None:
         title = Path(filename).stem

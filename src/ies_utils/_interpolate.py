@@ -10,11 +10,8 @@ def interpolate_values(lampdict, num_thetas=181, num_phis=361, overwrite=False):
     """
 
     if "interp_vals" in list(lampdict.keys()):
-        if overwrite:
-            msg = "Interpolated dictionary already exists, but will be overwritten."
-            warnings.warn(msg, stacklevel=2)
-        else:
-            msg = "Interpolated dictionary already exists. New interpolation not performed."
+        if not overwrite:
+            msg = "Interpolated dictionary already exists. If you wish to overwrite it, set `overwrite` to True."
             warnings.warn(msg, stacklevel=2)
             return lampdict
 

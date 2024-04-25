@@ -61,7 +61,7 @@ Extending the angles and interpolation between them can be disabled if desired:
 
 If finer interpolation is desired, the `interp_vals` dictionary can be overwritten:
 	
-	interpolate(lampdict, overwrite=True, num_thetas=361, num_phis=721)
+	interpolate_values(lampdict, overwrite=True, num_thetas=361, num_phis=721)
 	finer_interp_dict = lampdict["interp_vals"]
 
 Simple calculations are performed at the filename level:

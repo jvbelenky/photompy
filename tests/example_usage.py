@@ -15,7 +15,7 @@ power = total_optical_power(filename)
 m = lamp_area(filename, units="meters")
 
 # interpolate
-interpolate_values(lampdict, num_thetas=181,num_phis=361)
+interpolate_values(lampdict, overwrite=True, num_thetas=361, num_phis=721)
 interpdict = lampdict['interp_vals']
 
 # write to new file
