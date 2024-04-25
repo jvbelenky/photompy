@@ -42,11 +42,11 @@ def write_ies_data(filename, lampdict, valkey="original_vals"):
     # check that the valdict is in order
     verify_valdict(valdict)
 
-    if valkey == "full_vals":
+    if valkey in ["full_vals","interp_vals"]:
         # the full_vals dictionary takes into account the multiplier, so if
         # they are being written, the multiplier should be set to 1, regardless
         # of what it was with respect to the original_vals dictionary
-        lampdict["multiplier"] == 1
+        lampdict["multiplier"] = 1
 
     thetas = valdict["thetas"]
     phis = valdict["phis"]
@@ -78,5 +78,5 @@ def write_ies_data(filename, lampdict, valkey="original_vals"):
     iesdata += candelas
 
     # write
-    with open(filename, "w") as newfile:
+    with open(filename, "w", encoding='utf-8') as newfile:
         newfile.write(iesdata)

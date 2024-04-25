@@ -5,7 +5,7 @@ from ies_utils import *
 if len(sys.argv) > 1:
     filename = Path(sys.argv[1])
 else:
-    filename = Path("./tests/ies_files/LLIA001477-003.ies")
+    filename = Path("./tests/ies_files/B1 module.ies")
 
 # read
 lampdict = read_ies_data(filename)

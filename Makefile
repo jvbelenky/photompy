@@ -38,6 +38,6 @@ clean:
 
 ## Try the example usage
 test: 
-	$(PYTHON_INTERPRETER) ./tests/example_usage.py tests/ies_files/LLIA001477-003.ies
+	$(PYTHON_INTERPRETER) ./tests/example_usage.py "tests/ies_files/B1 module.ies"
 
 all: install test clean
