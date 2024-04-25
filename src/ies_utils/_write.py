@@ -78,5 +78,5 @@ def write_ies_data(filename, lampdict, valkey="original_vals"):
     iesdata += candelas
 
     # write
-    with open(filename, "w", encoding='utf-8') as newfile:
+    with open(filename, "w", encoding='utf-8', newline='') as newfile:
         newfile.write(iesdata)
