@@ -30,7 +30,7 @@ read_ies_data(newfile)
 # plot_ies(filename, "original")
 # plot_ies(filename, "full")
 # plot_ies(filename, "interpolated")
-# plot_ies(filename)
+plot_ies(filename)
 
 # plot_valdict_polar(interpdict)
 # plot_valdict_cartesian(interpdict)
