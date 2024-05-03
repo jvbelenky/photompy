@@ -48,19 +48,18 @@ def plot_ies(
 
     if plot_type == "polar":
         fig, ax = plot_valdict_polar(valdict=valdict, title=title, figsize=figsize)
-
+        
     elif plot_type == "cartesian":
-
-    fig, ax =  plot_valdict_cartesian(
-            valdict=valdict,
-            elev=elev,
-            azim=azim,
-            title=title,
-            figsize=figsize,
-            show_cbar=show_cbar,
-            alpha=alpha,
-            cmap=cmap,
-        )
+        fig, ax =  plot_valdict_cartesian(
+                valdict=valdict,
+                elev=elev,
+                azim=azim,
+                title=title,
+                figsize=figsize,
+                show_cbar=show_cbar,
+                alpha=alpha,
+                cmap=cmap,
+            )
     return fig, ax
 
 def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
