@@ -51,7 +51,7 @@ def plot_ies(
 
     elif plot_type == "cartesian":
 
-        plot_valdict_cartesian(
+    fig, ax =  plot_valdict_cartesian(
             valdict=valdict,
             elev=elev,
             azim=azim,
@@ -61,7 +61,7 @@ def plot_ies(
             alpha=alpha,
             cmap=cmap,
         )
-
+    return fig, ax
 
 def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
     values = valdict["values"]
@@ -239,8 +239,8 @@ def polar_to_cartesian(theta, phi, distance=1):
     phi_rad = np.radians(phi)
 
     # Polar to Cartesian conversion
-    x = np.sin(theta_rad) * np.sin(phi_rad)
-    y = np.sin(theta_rad) * np.cos(phi_rad)
-    z = np.cos(theta_rad)
+    x = distance * np.sin(theta_rad) * np.sin(phi_rad)
+    y = distance * np.sin(theta_rad) * np.cos(phi_rad)
+    z = distance * np.cos(theta_rad)
 
     return x, y, z
