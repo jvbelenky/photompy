@@ -1,3 +1,4 @@
+import pathlib
 from pathlib import Path
 from collections import Counter
 import warnings
@@ -43,15 +44,17 @@ def read_ies_data(path_to_file, extend=True, interpolate=True):
     return lampdict
 
 
-def _read_file(path_to_file):
-    filepath = Path(path_to_file)
-    filetype = filepath.suffix.lower()
-    if filetype != ".ies":
-        raise Exception("File must be .ies, not {}".format(filetype))
-    string = filepath.read_text()
-    lines = string.split("\n")
-
-    return lines
+def _read_file(fdata):    
+    if isinstance(fdata, (str, pathlib.PosixPath)):
+        filepath = Path(fdata)
+        if filepath.suffix.lower() != ".ies":
+            raise Exception("File must be .ies, not {}".format(filetype))
+        string = filepath.read_text()
+    elif isinstance(fdata, bytes):
+        string = fdata.decode("utf-8")
+    else:
+        raise TypeError("Need either a filepath or a bytes-like object, not {}".format(type(fdata)))
+    return string.split("\n")
 
 
 def _get_version(lines):
