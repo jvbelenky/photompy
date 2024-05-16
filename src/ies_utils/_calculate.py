@@ -23,21 +23,24 @@ def total_optical_power(filename, num_thetas=181, num_phis=361, distance=1):
         interpolate_values(lampdict, num_thetas=num_thetas, num_phis=num_phis)
         interp_dict = lampdict["interp_vals"]
 
-    # ies file is in degrees
-    theta_deg = interp_dict["thetas"]
-    phi_deg = interp_dict["phis"]
+    valdict = lampdict['interp_vals']
+    values = valdict['values']
+    phis = valdict['phis']
+    thetas = valdict['thetas']
 
-    # compute the area infinitesimal
-    Theta_deg, Phi_deg = np.meshgrid(theta_deg, phi_deg)
-    # convert to radians
-    dTheta_rad = np.radians(theta_deg[1] - theta_deg[0])
-    dPhi_rad = np.radians(phi_deg[1] - phi_deg[0])
-    dA = distance ** 2 * np.sin(np.radians(Theta_deg)) * dTheta_rad * dPhi_rad
-
-    total_power = (interp_dict["values"] * dA).sum()
+    thetastep = thetas[1]-thetas[0]
+    thetasums = values.sum(axis=0) / len(phis)
+    thetas1 = np.maximum(0, thetas - thetastep / 2)  # Avoid negative angles
+    thetas2 = thetas + thetastep / 2
+    areas = compute_frustrum_area(thetas1, thetas2)
+    total_power = (thetasums*areas).sum()
 
     return total_power
 
+def compute_frustrum_area(theta1, theta2):
+    a1 = 2*np.pi*(1 - np.cos(np.radians(theta1))) # r^2 = 1
+    a2 = 2*np.pi*(1 - np.cos(np.radians(theta2))) # r^2 = 1
+    return a2 - a1
 
 def lamp_area(filename, units="meters", verbose=False):
     """
