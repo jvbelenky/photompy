@@ -23,8 +23,8 @@ def interpolate_values(lampdict, num_thetas=181, num_phis=361, overwrite=False):
     tgrid, pgrid = np.meshgrid(newthetas, newphis)
     tflat, pflat = tgrid.flatten(), pgrid.flatten()
 
-    intensity = [get_intensity(t, p, valdict) for t, p in zip(tflat, pflat)]
-    newvalues = np.array(intensity).reshape(num_phis, num_thetas)
+    intensity = get_intensity_vectorized(tflat, pflat, valdict)
+    newvalues = intensity.reshape(num_phis, num_thetas)
 
     newdict = {}
     newdict["thetas"] = newthetas
@@ -35,6 +35,40 @@ def interpolate_values(lampdict, num_thetas=181, num_phis=361, overwrite=False):
 
     return lampdict
 
+def get_intensity_vectorized(theta, phi, valdict):
+    thetamap = valdict["thetas"]
+    phimap = valdict["phis"]
+    valuemap = valdict["values"]
+
+    # Ensure theta and phi are numpy arrays
+    theta = np.asarray(theta)
+    phi = np.asarray(phi)
+
+    # Range checks for theta and phi
+    if np.any(theta < 0) or np.any(theta > 180):
+        raise ValueError("Theta values must be between 0 and 180 degrees")
+    phi = np.mod(phi, 360)  # Normalize phi values
+
+    # Finding closest indices for phi and theta
+    phi_indices = np.searchsorted(phimap, phi, side='left')
+    theta_indices = np.searchsorted(thetamap, theta, side='left')
+
+    # Handle boundary conditions for interpolation
+    phi_indices = np.clip(phi_indices, 1, len(phimap)-1)
+    theta_indices = np.clip(theta_indices, 1, len(thetamap)-1)
+
+    # Compute interpolation weights
+    phi_weights = (phi - phimap[phi_indices-1]) / (phimap[phi_indices] - phimap[phi_indices-1])
+    theta_weights = (theta - thetamap[theta_indices-1]) / (thetamap[theta_indices] - thetamap[theta_indices-1])
+
+    # Interpolate values
+    val1 = valuemap[phi_indices-1, theta_indices-1] * (1 - phi_weights) + valuemap[phi_indices, theta_indices-1] * phi_weights
+    val2 = valuemap[phi_indices-1, theta_indices] * (1 - phi_weights) + valuemap[phi_indices, theta_indices] * phi_weights
+    final_val = val1 * (1 - theta_weights) + val2 * theta_weights
+
+    return final_val
+    
+########## Everything below here is deprecated! #################
 
 def get_intensity(theta, phi, valdict):
     """
@@ -47,8 +81,7 @@ def get_intensity(theta, phi, valdict):
     valuemap: array of shape (len(ph))
 
     """
-    epsilon = np.finfo(np.float64).eps
-
+   
     thetamap = valdict["thetas"]
     phimap = valdict["phis"]
     valuemap = valdict["values"]
@@ -60,6 +93,15 @@ def get_intensity(theta, phi, valdict):
     if phi > 360 or phi < 0:
         phi = phi % 360
 
+    if phi in phimap:
+        phi_idx = np.argwhere(phimap==phi)[0][0]
+    else:
+        phi_idx = None
+    if theta in thetamap:
+        theta_idx = np.argwhere(thetamap==theta)[0][0]
+    else:
+        theta_idx = None
+
     # prevent div by zero errors
     if phi == 0:
         phi += epsilon
@@ -70,9 +112,9 @@ def get_intensity(theta, phi, valdict):
     theta_idx1, theta_idx2 = _find_closest(thetamap, theta)
 
     # Interpolate along phimap for both thetamap
+    weight1 = (phi - phimap[phi_idx1]) / (phimap[phi_idx2] - phimap[phi_idx1])
     val1a = valuemap[phi_idx1][theta_idx1]
     val1b = valuemap[phi_idx2][theta_idx1]
-    weight1 = (phi - phimap[phi_idx1]) / (phimap[phi_idx2] - phimap[phi_idx1])
     val1 = _linear_interpolate(val1a, val1b, weight1)
 
     val2a = valuemap[phi_idx1][theta_idx2]
