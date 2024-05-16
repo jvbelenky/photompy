@@ -47,7 +47,8 @@ def read_ies_data(path_to_file, extend=True, interpolate=True):
 def _read_file(fdata):    
     if isinstance(fdata, (str, pathlib.PosixPath)):
         filepath = Path(fdata)
-        if filepath.suffix.lower() != ".ies":
+        filetype = filepath.suffix.lower()
+        if filetype != ".ies":
             raise Exception("File must be .ies, not {}".format(filetype))
         string = filepath.read_text()
     elif isinstance(fdata, bytes):
