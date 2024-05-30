@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+import pathlib
 import warnings
 from ._interpolate import interpolate_values
 from ._read import read_ies_data
 
-
 def plot_ies(
-    filename,
+    fdata,
     plot_type="polar",
     which="interpolated",
     elev=-90,
@@ -20,7 +20,30 @@ def plot_ies(
 ):
     """
     central plotting function
+    
+    Parameters::
+
+    fdata: pathlike str, pathlib.PosixPath, dict
+        either a filename or a lampdict object or a valdict object
+    plot_type: str, default=`polar`
+        if `polar`, standard ies file polar plot. if `cartesian`, a value-colored 3d plot of the measurements in cartesian space
+    which: [`original`, `full`, `interpolated`], default=`interpolated
+        only used if fdata is not a valdict object
+    elev: numeric
+        only used if plot_type=`cartesian`
+    azim: numeric
+        only used if plot_type=`cartesian`
+    title: str
+        title for plot
+    figsize:
+        actually probably not really used right now because both plot types are special
+    show_cbar:
+        if plot_type=`cartesian`, shows value intensity map
+    cmap:
+        colormap; used only if plot_type=`cartesian`
+
     """
+    
 
     if which.lower() not in ["original", "full", "interpolated"]:
         msg = "`which` must be in [`original`, `full`, `interpolated`]"
@@ -30,21 +53,36 @@ def plot_ies(
         msg = "`plot_type` must be in [`polar`, `cartesian`]"
         raise KeyError(msg)
 
-    # read
-    lampdict = read_ies_data(filename)
-    if which.lower() == "original":
-        valdict = lampdict["original_vals"]
-    elif which.lower() == "full":
-        valdict = lampdict["full_vals"]
-    elif which.lower() == "interpolated":
-        try:
-            valdict = lampdict["interp_vals"]
-        except KeyError:
-            interpolate_values(lampdict)
-            valdict = lampdict["interp_vals"]
+    # check what type filedata is
+    DATA_TYPE = None
+    if isinstance(fdata,(str,pathlib.PosixPath,bytes)):
+        if Path(fdata).is_file():
+            DATA_TYPE = "FILE"
+            lampdict = read_ies_data(fdata)
+    elif isinstance(fdata,dict):
+        lampdict_keys = ['source', 'version', 'keywords', 'num_lamps', 'lumens_per_lamp', 'multiplier', 'num_vertical_angles', 'num_horizontal_angles', 'photometric_type', 'units_type', 'width', 'length', 'height', 'ballast_factor', 'future_use', 'input_watts', 'lamp_type', 'original_vals']
+        valdict_keys = ['thetas','phis','values']
+        if all([key in fdata.keys() for key in lampdict_keys]):
+            DATA_TYPE = "LAMPDICT"
+            lampdict = fdata
+        elif all([key in fdata.keys() for key in valdict_keys]):
+            DATA_TYPE = "VALDICT"
+            valdict = fdata
+        else:
+            raise Exception("Datatype could not be determined")
 
-    if title is None:
-        title = Path(filename).stem
+    # load valdict if one was not passed 
+    if DATA_TYPE != "VALDICT":
+        if which.lower() == "original":
+            valdict = lampdict["original_vals"]
+        elif which.lower() == "full":
+            valdict = lampdict["full_vals"]
+        elif which.lower() == "interpolated":
+            try:
+                valdict = lampdict["interp_vals"]
+            except KeyError:
+                interpolate_values(lampdict)
+                valdict = lampdict["interp_vals"]
 
     if plot_type == "polar":
         fig, ax = plot_valdict_polar(valdict=valdict, title=title, figsize=figsize)
