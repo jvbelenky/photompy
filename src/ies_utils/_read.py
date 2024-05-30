@@ -285,6 +285,20 @@ def _format_angles(lampdict):
         newthetas = valdict["thetas"].copy()
         newvals = valdict["values"].copy()
 
+    # fill in values of theta 90-180 if not provided
+    if newthetas[-1] == 90:
+        step = newthetas[-1]-newthetas[-2]    
+        extrathetas = []
+        val=newthetas[-1]
+        while val<180:
+            val=val+step
+            extrathetas.append(val)
+        if extrathetas[-1] != 180:
+            warnings.warn("Step function for filling out extra vertical angles did not produce a final value of 180")
+        newthetas = np.concatenate((newthetas,extrathetas))
+        extravals = np.zeros((len(newphis),len(extrathetas)))
+        newvals = np.concatenate((newvals.T,extravals.T)).T
+
     # use candela multiplier
     mult = lampdict["multiplier"]
 
