@@ -170,7 +170,8 @@ def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
             ncol=len(by_label),  
             mode = "expand",
             loc='lower center',
-            bbox_to_anchor=[-0.125, -0.2, 1.25,0.5]
+            bbox_to_anchor=[-0.125, -0.2, 1.25,0.5],
+            fontsize=9
     )
     plt.tight_layout()
     plt.show()
