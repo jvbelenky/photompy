@@ -167,11 +167,8 @@ def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     ax.legend(by_label.values(), by_label.keys(), 
-            ncol=len(by_label),  
-            mode = "expand",
-            loc='lower center',
-            bbox_to_anchor=[-0.125, -0.2, 1.25,0.5],
-            fontsize=9
+            loc='uppercenter',
+            bbox_to_anchor=[0.5,-0.1,0,0 ],
     )
     plt.tight_layout()
     plt.show()
