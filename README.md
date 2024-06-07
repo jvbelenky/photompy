@@ -7,18 +7,15 @@ A library for reading, writing, and viewing photometric files.
 
 Install with pip:
 
-	```
 	pip install photompy
-	```
 
 Alternatively, clone the repo and build locally:
 
-	```
 	git clone https://github.com/jvbelenky/photompy.git
     cd photompy
     python setup.py sdist
     pip install .
-    ```
+
 
 <!-- USAGE EXAMPLES -->
 ## Usage
