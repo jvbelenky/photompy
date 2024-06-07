@@ -5,33 +5,19 @@ A library for reading, writing, and viewing photometric files.
 <!-- Installation -->
 ## Installation
 
-1. Clone the repo
+Install with pip:
 
-   ```
-   git clone https://github.com/jvbelenky/photompy.git
-   ```
-   or 
-   
-   ```
-   git clone git@github.com:jvbelenky/photompy.git
-   ```
-2. Install locally
+	```
+	pip install photompy
+	```
 
-   ```
-   cd photompy
-   python setup.py sdist
-   pip install .
-   ```
-3. Test, if you like
+Alternatively, clone the repo and build locally:
 
-    ```
-    python3 tests/example_usage.py tests/ies_files/LLIA001477-003.ies
-    ```
-4. If on Linux/MacOS, after cloning:
-
-    ```
+	```
+	git clone https://github.com/jvbelenky/photompy.git
     cd photompy
-    make all
+    python setup.py sdist
+    pip install .
     ```
 
 <!-- USAGE EXAMPLES -->
@@ -121,9 +107,9 @@ Note that header data is _not_ automatically updated in the latter case. Verify 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] PyPi distribution
-- [ ] More flexibility in function inputs - pass either filename, or dict object, etc
-- [ ] Matrix manipulations - aim and rearrange input files
+- [ ] PhotometricData and AngleData objects (as opposed to lampdict and valdict dictionaries)
+- [ ] Generate .ies files from an angular distribution table
+- [ ] Type A and B photometry support
 - [ ] Dialux file (.ldt) support
 - [ ] More extensive write support
 

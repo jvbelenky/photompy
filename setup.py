@@ -8,14 +8,9 @@ with open("README.md", "r") as fh:
         version="0.0.3",
         author="J. Vivian Belenky",
         author_email="j.vivian.belenky@outlook.com",
-        description="Utility package for handling photometric files",
+        description="A library for reading, writing, and viewing photometric files.",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        classifiers=[
-            "Programming Language :: Python :: 3",
-            "Operating System :: OS Independent",
-            "License :: OSI Approved :: MIT License",
-        ],
         packages=find_packages('src'),
         package_dir={'': 'src'},
         zip_safe=True,
@@ -23,5 +18,10 @@ with open("README.md", "r") as fh:
         install_requires=[
             "numpy",
             "matplotlib",
+        ],        
+        classifiers=[
+            "Programming Language :: Python :: 3",
+            "Operating System :: OS Independent",
+            "License :: OSI Approved :: MIT License",
         ],
     )
