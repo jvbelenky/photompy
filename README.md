@@ -1,6 +1,6 @@
-IES Utilities
+PhotomPy: Photometric Python
 ===========================
-This package contains utility functions for working with photometric files.
+A library for reading, writing, and viewing photometric files.
 
 <!-- Installation -->
 ## Installation
