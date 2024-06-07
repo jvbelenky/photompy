@@ -1,7 +1,6 @@
 IES Utilities
 ===========================
-This package contains utility functions for working with .ies (Illuminating Engineering Society) photometric files.
-
+This package contains utility functions for working with photometric files.
 
 <!-- Installation -->
 ## Installation
@@ -9,17 +8,17 @@ This package contains utility functions for working with .ies (Illuminating Engi
 1. Clone the repo
 
    ```
-   git clone https://github.com/jvbelenky/ies_utils.git
+   git clone https://github.com/jvbelenky/photompy.git
    ```
    or 
    
    ```
-   git clone git@github.com:jvbelenky/ies_utils.git
+   git clone git@github.com:jvbelenky/photompy.git
    ```
 2. Install locally
 
    ```
-   cd ies_utils
+   cd photompy
    python setup.py sdist
    pip install .
    ```
@@ -31,7 +30,7 @@ This package contains utility functions for working with .ies (Illuminating Engi
 4. If on Linux/MacOS, after cloning:
 
     ```
-    cd ies_utils
+    cd photompy
     make all
     ```
 
@@ -43,7 +42,7 @@ This package contains utility functions for working with .ies (Illuminating Engi
 Most of the core functionality of the library is in `read_ies_data` :
 
 
-	from ies_utils import *
+	from photompy import *
 	lampdict = read_ies_data(filename)
 	
 
@@ -139,4 +138,4 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Vivian Belenky - j.vivian.belenky@outlook.com - [@vivian_belenky](https://twitter.com/vivian_belenky)
 
-Project Link: [https://github.com/jvbelenky/ies_utils/](https://github.com/jvbelenky/ies_utils/)
+Project Link: [https://github.com/jvbelenky/photompy/](https://github.com/jvbelenky/photompy/)

@@ -24,8 +24,8 @@ install:
 
 ## Lint using flake8 and black
 lint:
-	black ies_utils
-	flake8 ies_utils
+	black photompy
+	flake8 photompy
 
 ## Remove compiled python files
 clean:
