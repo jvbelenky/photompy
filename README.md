@@ -119,6 +119,4 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Vivian Belenky - j.vivian.belenky@outlook.com - [@vivian_belenky](https://twitter.com/vivian_belenky)
-
-Project Link: [https://github.com/jvbelenky/photompy/](https://github.com/jvbelenky/photompy/)
+Vivian Belenky - jvb@osluv.org
