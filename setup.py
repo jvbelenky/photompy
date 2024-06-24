@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     setup(
         name="photompy",
         url="https://github.com/jvbelenky/photompy",
-        version="0.0.3",
+        version="0.0.4",
         author="J. Vivian Belenky",
         author_email="j.vivian.belenky@outlook.com",
         description="A library for reading, writing, and viewing photometric files.",

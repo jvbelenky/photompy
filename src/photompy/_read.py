@@ -44,13 +44,21 @@ def read_ies_data(path_to_file, extend=True, interpolate=True):
     return lampdict
 
 
-def _read_file(fdata):    
-    if isinstance(fdata, (str, pathlib.PosixPath)):
-        filepath = Path(fdata)
+def _read_file(fdata):
+    if isinstance(fdata,pathlib.PosixPath):
         filetype = filepath.suffix.lower()
         if filetype != ".ies":
-            raise Exception("File must be .ies, not {}".format(filetype))
+            raise ValueError(f"File must be .ies, not {filetype}" )
         string = filepath.read_text()
+    if isinstance(fdata, str):
+        if fdata.startswith("IESNA"):
+            string = fdata
+        else:
+            filepath = Path(fdata)
+            filetype = filepath.suffix.lower()
+            if filetype != ".ies":
+                raise ValueError(msg)
+            string = filepath.read_text()
     elif isinstance(fdata, bytes):
         string = fdata.decode("utf-8")
     else:
