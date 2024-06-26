@@ -49,9 +49,10 @@ def _read_data(fdata):
     read string from filedata, which may be a path to a file, a bytes object,
     or a decoded string
     """
+    
     if isinstance(fdata, pathlib.PosixPath):
         string = _read_file(fdata)
-    if isinstance(fdata, str):
+    elif isinstance(fdata, str):
         if fdata.startswith("IESNA"):
             string = fdata
         else:
@@ -59,7 +60,7 @@ def _read_data(fdata):
     elif isinstance(fdata, bytes):
         string = fdata.decode("utf-8")
     else:
-        raise TypeError("Need either a filepath or a bytes-like object, not {}".format(type(fdata)))
+        raise TypeError("Need either a string, filepath or a bytes-like object, not {}".format(type(fdata)))
     return string.split("\n")
 
 def _read_file(fdata):
