@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
-from ies_utils import *
+from photompy
+ import *
 
 if len(sys.argv) > 1:
     filename = Path(sys.argv[1])
