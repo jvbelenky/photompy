@@ -1,4 +1,4 @@
- .PHONY: test clean
+ .PHONY: test clean build
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
@@ -21,6 +21,11 @@ install:
 	rm -rf dist build */*.egg-info *.egg-info
 	$(PYTHON_INTERPRETER) setup.py sdist
 	pip install .
+	
+build:
+	rm -rf dist build */*.egg-info *.egg-info
+	$(PYTHON_INTERPRETER) setup.py sdist bdist_wheel
+	twine upload dist/*
 
 ## Lint using flake8 and black
 lint:

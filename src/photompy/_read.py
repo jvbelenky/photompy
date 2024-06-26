@@ -6,14 +6,14 @@ import numpy as np
 from ._interpolate import interpolate_values
 
 
-def read_ies_data(path_to_file, extend=True, interpolate=True):
+def read_ies_data(filedata, extend=True, interpolate=True):
     """
     main .ies file reading function
     """
-    lines = _read_file(path_to_file)
+    lines = _read_data(filedata)
     lines = [line.strip() for line in lines]
 
-    lampdict = {"source": path_to_file}
+    lampdict = {"source": filedata}
     lampdict["version"] = _get_version(lines)
 
     header = []
@@ -44,27 +44,31 @@ def read_ies_data(path_to_file, extend=True, interpolate=True):
     return lampdict
 
 
-def _read_file(fdata):
-    if isinstance(fdata,pathlib.PosixPath):
-        filetype = filepath.suffix.lower()
-        if filetype != ".ies":
-            raise ValueError(f"File must be .ies, not {filetype}" )
-        string = filepath.read_text()
+def _read_data(fdata):
+    """
+    read string from filedata, which may be a path to a file, a bytes object,
+    or a decoded string
+    """
+    if isinstance(fdata, pathlib.PosixPath):
+        string = _read_file(fdata)
     if isinstance(fdata, str):
         if fdata.startswith("IESNA"):
             string = fdata
         else:
-            filepath = Path(fdata)
-            filetype = filepath.suffix.lower()
-            if filetype != ".ies":
-                raise ValueError(msg)
-            string = filepath.read_text()
+            string = _read_file(fdata)
     elif isinstance(fdata, bytes):
         string = fdata.decode("utf-8")
     else:
         raise TypeError("Need either a filepath or a bytes-like object, not {}".format(type(fdata)))
     return string.split("\n")
 
+def _read_file(fdata):
+    """read string from filepath"""
+    filepath = Path(fdata)
+    filetype = filepath.suffix.lower()
+    if filetype != ".ies":
+        raise ValueError(f"File must be .ies, not {filetype}" )
+    return filepath.read_text()
 
 def _get_version(lines):
     if lines[0].startswith("IESNA"):
