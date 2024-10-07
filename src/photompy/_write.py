@@ -1,4 +1,40 @@
-from ._read import verify_valdict
+from ._read import verify_valdict, read_ies_data
+
+def scale_lamp_to_total(total_power, ref_lamp, outfile):
+    """
+    create a new ies file based on an existing file, 
+    with a set total optical power value
+    """
+    root =  Path("/mnt/c/data/business/work/uvc/repos/ies_utils/tests/")
+    ies_file = root / 'ies_files'/ (ref_lamp +'.ies')
+    lampdict = read_ies_data(ies_file)
+    
+    valdict= lampdict['full_vals']
+    top=total_optical_power(valdict)
+    factor = total_power/top
+    
+    newdict = valdict.copy()
+    newdict["values"] = valdict["values"]*factor
+    lampdict["scaled_vals"] = newdict
+    write_ies_data(outfile, lampdict, valkey="scaled_vals")
+
+def scale_lamp_to_max(max_val, ref_lamp, outfile):
+    """
+    create a new ies file based on an existing file, 
+    with a set maximum irradiance value
+    """
+    root =  Path("/mnt/c/data/business/work/uvc/repos/ies_utils/tests/")
+    ies_file = root / 'ies_files'/ (ref_lamp +'.ies')
+    lampdict = read_ies_data(ies_file)
+    
+    valdict= lampdict['full_vals']
+    prev_max = valdict['values'].max()
+    factor = max_val / prev_max
+    
+    newdict = valdict.copy()
+    newdict["values"] = valdict["values"]*factor
+    lampdict["scaled_vals"] = newdict
+    write_ies_data(outfile, lampdict, valkey="scaled_vals")
 
 
 def _process_row(row, sigfigs=2):
