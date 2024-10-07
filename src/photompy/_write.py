@@ -1,4 +1,5 @@
 from ._read import verify_valdict, read_ies_data
+from ._calculate import total_optical_power
 
 def scale_lamp_to_total(total_power, ref_lamp, outfile):
     """
