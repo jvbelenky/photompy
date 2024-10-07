@@ -171,8 +171,6 @@ def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
             bbox_to_anchor=[0.5,-0.1,0,0 ],
     )
     plt.tight_layout()
-    plt.show()
-    
     return fig, ax
 
 
@@ -233,7 +231,6 @@ def plot_valdict_cartesian(
     ax.set_ylabel("y")
     ax.set_zlabel("z")
     ax.set_title(title)
-    plt.show()
 
     return fig, ax
 
