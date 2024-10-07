@@ -6,6 +6,7 @@ import warnings
 from ._interpolate import interpolate_values
 from ._read import read_ies_data
 
+
 def plot_ies(
     fdata,
     plot_type="polar",
@@ -20,13 +21,14 @@ def plot_ies(
 ):
     """
     central plotting function
-    
+
     Parameters::
 
     fdata: pathlike str, pathlib.PosixPath, dict
         either a filename or a lampdict object or a valdict object
     plot_type: str, default=`polar`
-        if `polar`, standard ies file polar plot. if `cartesian`, a value-colored 3d plot of the measurements in cartesian space
+        if `polar`, standard ies file polar plot. if `cartesian`, a
+        value-colored 3d plot of the measurements in cartesian space
     which: [`original`, `full`, `interpolated`], default=`interpolated
         only used if fdata is not a valdict object
     elev: numeric
@@ -36,14 +38,14 @@ def plot_ies(
     title: str
         title for plot
     figsize:
-        actually probably not really used right now because both plot types are special
+        actually probably not really used right now because both plot
+        types are special
     show_cbar:
         if plot_type=`cartesian`, shows value intensity map
     cmap:
         colormap; used only if plot_type=`cartesian`
 
     """
-    
 
     if which.lower() not in ["original", "full", "interpolated"]:
         msg = "`which` must be in [`original`, `full`, `interpolated`]"
@@ -55,13 +57,32 @@ def plot_ies(
 
     # check what type filedata is
     DATA_TYPE = None
-    if isinstance(fdata,(str,pathlib.PosixPath,bytes)):
+    if isinstance(fdata, (str, pathlib.PosixPath, bytes)):
         if Path(fdata).is_file():
             DATA_TYPE = "FILE"
             lampdict = read_ies_data(fdata)
-    elif isinstance(fdata,dict):
-        lampdict_keys = ['source', 'version', 'keywords', 'num_lamps', 'lumens_per_lamp', 'multiplier', 'num_vertical_angles', 'num_horizontal_angles', 'photometric_type', 'units_type', 'width', 'length', 'height', 'ballast_factor', 'future_use', 'input_watts', 'lamp_type', 'original_vals']
-        valdict_keys = ['thetas','phis','values']
+    elif isinstance(fdata, dict):
+        lampdict_keys = [
+            "source",
+            "version",
+            "keywords",
+            "num_lamps",
+            "lumens_per_lamp",
+            "multiplier",
+            "num_vertical_angles",
+            "num_horizontal_angles",
+            "photometric_type",
+            "units_type",
+            "width",
+            "length",
+            "height",
+            "ballast_factor",
+            "future_use",
+            "input_watts",
+            "lamp_type",
+            "original_vals",
+        ]
+        valdict_keys = ["thetas", "phis", "values"]
         if all([key in fdata.keys() for key in lampdict_keys]):
             DATA_TYPE = "LAMPDICT"
             lampdict = fdata
@@ -71,7 +92,7 @@ def plot_ies(
         else:
             raise Exception("Datatype could not be determined")
 
-    # load valdict if one was not passed 
+    # load valdict if one was not passed
     if DATA_TYPE != "VALDICT":
         if which.lower() == "original":
             valdict = lampdict["original_vals"]
@@ -86,19 +107,20 @@ def plot_ies(
 
     if plot_type == "polar":
         fig, ax = plot_valdict_polar(valdict=valdict, title=title, figsize=figsize)
-        
+
     elif plot_type == "cartesian":
-        fig, ax =  plot_valdict_cartesian(
-                valdict=valdict,
-                elev=elev,
-                azim=azim,
-                title=title,
-                figsize=figsize,
-                show_cbar=show_cbar,
-                alpha=alpha,
-                cmap=cmap,
-            )
+        fig, ax = plot_valdict_cartesian(
+            valdict=valdict,
+            elev=elev,
+            azim=azim,
+            title=title,
+            figsize=figsize,
+            show_cbar=show_cbar,
+            alpha=alpha,
+            cmap=cmap,
+        )
     return fig, ax
+
 
 def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
     values = valdict["values"]
@@ -166,9 +188,11 @@ def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
     # legend
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys(), 
-            loc='upper center',
-            bbox_to_anchor=[0.5,-0.1,0,0 ],
+    ax.legend(
+        by_label.values(),
+        by_label.keys(),
+        loc="upper center",
+        bbox_to_anchor=[0.5, -0.1, 0, 0],
     )
     plt.tight_layout()
     return fig, ax
@@ -207,8 +231,8 @@ def plot_valdict_cartesian(
 
     # verify data shape
     if not values.shape == (len(phis), len(thetas)):
-        msg = "Shape of candela values {} does not match number of vertical and \
-            horizontal angles {}".format(
+        msg = "Shape of candela values {} does not match number of vertical \
+        and horizontal angles {}".format(
             values.shape, (len(phis), len(thetas))
         )
         raise ValueError(msg)
@@ -273,7 +297,7 @@ def polar_to_cartesian(theta, phi, distance=1):
     tuple: (x, y, z, value) in Cartesian coordinates.
     """
     # Convert angles to radians
-    theta_rad = np.radians(180 - theta)  # to account for reversed z direction
+    theta_rad = np.radians(180 - theta)  # accounts for reversed z direction
     phi_rad = np.radians(phi)
 
     # Polar to Cartesian conversion
