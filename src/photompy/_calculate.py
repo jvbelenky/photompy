@@ -9,7 +9,7 @@ def total_optical_power(data, num_thetas=181, num_phis=361, distance=1):
     """
     calculate the total optical power of a lamp given an .ies file
 
-    data: either an .ies filename to calculate from, or a pre-load value 
+    data: either an .ies filename to calculate from, or a pre-load value
         dictionary containing keys `phis`,`thetas`, and `values`
     num_thetas: number of vertical angles to interpolate between.
         Ignored if data is a dict.
@@ -18,49 +18,50 @@ def total_optical_power(data, num_thetas=181, num_phis=361, distance=1):
     distance: lamp distance from sensor, in meters. Generally 1.
     """
     if isinstance(data, (str, pathlib.PosixPath)) and os.path.isfile(data):
-        valdict = _load_interpdict(data,num_thetas,num_phis)
+        valdict = _load_interpdict(data, num_thetas, num_phis)
         result = _compute_total_power(valdict)
     elif isinstance(data, dict):
-        verify_valdict(data) # will raise errors if valdict is malformed
+        verify_valdict(data)  # will raise errors if valdict is malformed
         result = _compute_total_power(data)
     else:
         raise ValueError("data must be either an .ies file or a dict object")
     return result
-    
+
+
 def _load_interpdict(filename, num_thetas, num_phis):
     """
-    load a dictionary with interpolated values, and 
+    load a dictionary with interpolated values, and
     interpolate if it does not exist
     """
     lampdict = read_ies_data(filename)
     try:
-        interp_dict = lampdict["interp_vals"]
+        lampdict["interp_vals"]
     except KeyError:
         interpolate_values(lampdict, num_thetas=num_thetas, num_phis=num_phis)
-        interp_dict = lampdict["interp_vals"]
 
-    return lampdict['interp_vals']
-        
+    return lampdict["interp_vals"]
+
 
 def _compute_total_power(valdict):
     """compute the total optical power"""
-    values = valdict['values']
-    phis = valdict['phis']
-    thetas = valdict['thetas']
+    values = valdict["values"]
+    phis = valdict["phis"]
+    thetas = valdict["thetas"]
 
-    thetastep = thetas[1]-thetas[0]
+    thetastep = thetas[1] - thetas[0]
     thetasums = values.sum(axis=0) / len(phis)
     thetas1 = np.maximum(0, thetas - thetastep / 2)  # Avoid negative angles
     thetas2 = thetas + thetastep / 2
     areas = _compute_frustrum_area(thetas1, thetas2)
-    total_power = (thetasums*areas).sum()
+    total_power = (thetasums * areas).sum()
     return total_power
-    
+
 
 def _compute_frustrum_area(theta1, theta2):
-    a1 = 2*np.pi*(1 - np.cos(np.radians(theta1))) # r^2 = 1
-    a2 = 2*np.pi*(1 - np.cos(np.radians(theta2))) # r^2 = 1
+    a1 = 2 * np.pi * (1 - np.cos(np.radians(theta1)))  # r^2 = 1
+    a2 = 2 * np.pi * (1 - np.cos(np.radians(theta2)))  # r^2 = 1
     return a2 - a1
+
 
 def lamp_area(filename, units="meters", verbose=False):
     """

@@ -49,7 +49,7 @@ def _read_data(fdata):
     read string from filedata, which may be a path to a file, a bytes object,
     or a decoded string
     """
-    
+
     if isinstance(fdata, pathlib.PosixPath):
         string = _read_file(fdata)
     elif isinstance(fdata, str):
@@ -60,16 +60,22 @@ def _read_data(fdata):
     elif isinstance(fdata, bytes):
         string = fdata.decode("utf-8")
     else:
-        raise TypeError("Need either a string, filepath or a bytes-like object, not {}".format(type(fdata)))
+        raise TypeError(
+            "Need either a string, filepath or a bytes-like object, not {}".format(
+                type(fdata)
+            )
+        )
     return string.split("\n")
+
 
 def _read_file(fdata):
     """read string from filepath"""
     filepath = Path(fdata)
     filetype = filepath.suffix.lower()
     if filetype != ".ies":
-        raise ValueError(f"File must be .ies, not {filetype}" )
+        raise ValueError(f"File must be .ies, not {filetype}")
     return filepath.read_text()
+
 
 def _get_version(lines):
     if lines[0].startswith("IESNA"):
@@ -300,17 +306,20 @@ def _format_angles(lampdict):
 
     # fill in values of theta 90-180 if not provided
     if newthetas[-1] == 90:
-        step = newthetas[-1]-newthetas[-2]    
+        step = newthetas[-1] - newthetas[-2]
         extrathetas = []
-        val=newthetas[-1]
-        while val<180:
-            val=val+step
+        val = newthetas[-1]
+        while val < 180:
+            val = val + step
             extrathetas.append(val)
         if extrathetas[-1] != 180:
-            warnings.warn("Step function for filling out extra vertical angles did not produce a final value of 180")
-        newthetas = np.concatenate((newthetas,extrathetas))
-        extravals = np.zeros((len(newphis),len(extrathetas)))
-        newvals = np.concatenate((newvals.T,extravals.T)).T
+            warnings.warn(
+                "Step function for filling out extra vertical angles did not \
+                produce a final value of 180"
+            )
+        newthetas = np.concatenate((newthetas, extrathetas))
+        extravals = np.zeros((len(newphis), len(extrathetas)))
+        newvals = np.concatenate((newvals.T, extravals.T)).T
 
     # use candela multiplier
     mult = lampdict["multiplier"]

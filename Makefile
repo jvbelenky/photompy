@@ -34,8 +34,8 @@ build:
 
 ## Lint using flake8 and black
 lint:
-	black photompy
-	flake8 photompy
+	black src/photompy/*
+	flake8 --ignore=E114,E116,E117,E231,E266,E303,E501,W293,W291,W503 src/photompy/*
 
 ## Remove compiled python files
 clean:
