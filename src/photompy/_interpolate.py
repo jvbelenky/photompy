@@ -22,7 +22,7 @@ def interpolate_values(lampdict, num_thetas=181, num_phis=361, overwrite=False):
     tgrid, pgrid = np.meshgrid(newthetas, newphis)
     tflat, pflat = tgrid.flatten(), pgrid.flatten()
 
-    intensity = get_intensity_vectorized(tflat, pflat, valdict)
+    intensity = get_intensity(tflat, pflat, valdict)
     newvalues = intensity.reshape(num_phis, num_thetas)
 
     newdict = {}
@@ -35,12 +35,12 @@ def interpolate_values(lampdict, num_thetas=181, num_phis=361, overwrite=False):
     return lampdict
 
 
-def get_intensity_vectorized(theta, phi, valdict):
+def get_intensity(theta, phi, valdict):
     """
     determine arbitrary intensity value anywhere on unit sphere
 
-    theta: vertical angle value of interest
-    phi: horizontal/azimuthal angle value of interest
+    theta: arraylike of vertical angle value of interest
+    phi: arraylike of horizontal/azimuthal angle value of interest
     valdict: value dictionary containing theta, phi, value triplets
     """
     thetamap = valdict["thetas"]
