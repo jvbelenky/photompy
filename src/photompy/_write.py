@@ -6,9 +6,7 @@ def scale_lamp_to_total(total_power, ref_lamp, outfile):
     create a new ies file based on an existing file, 
     with a set total optical power value
     """
-    root =  Path("/mnt/c/data/business/work/uvc/repos/ies_utils/tests/")
-    ies_file = root / 'ies_files'/ (ref_lamp +'.ies')
-    lampdict = read_ies_data(ies_file)
+    lampdict = read_ies_data(ref_lamp)
     
     valdict= lampdict['full_vals']
     top=total_optical_power(valdict)
@@ -24,9 +22,7 @@ def scale_lamp_to_max(max_val, ref_lamp, outfile):
     create a new ies file based on an existing file, 
     with a set maximum irradiance value
     """
-    root =  Path("/mnt/c/data/business/work/uvc/repos/ies_utils/tests/")
-    ies_file = root / 'ies_files'/ (ref_lamp +'.ies')
-    lampdict = read_ies_data(ies_file)
+    lampdict = read_ies_data(ref_lamp)
     
     valdict= lampdict['full_vals']
     prev_max = valdict['values'].max()

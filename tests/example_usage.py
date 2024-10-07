@@ -1,4 +1,5 @@
 import sys
+import matplotlib.pyplot as plt
 from pathlib import Path
 from photompy import *
 
@@ -30,7 +31,12 @@ read_ies_data(newfile)
 # plot_ies(filename, "original")
 # plot_ies(filename, "full")
 # plot_ies(filename, "interpolated")
-plot_ies(filename)
-
+fig,ax=plot_ies(filename)
+plt.show()
 # plot_valdict_polar(interpdict)
 # plot_valdict_cartesian(interpdict)
+
+# scale
+
+scale_lamp_to_total(200,filename, "tests/total_200.ies")
+scale_lamp_to_max(100,filename, "tests/max_100.ies")
