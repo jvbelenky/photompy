@@ -16,6 +16,7 @@ def scale_lamp_to_total(total_power, ref_lamp, outfile):
     newdict = valdict.copy()
     newdict["values"] = valdict["values"] * factor
     lampdict["scaled_vals"] = newdict
+    lampdict["multiplier"] = 1
     write_ies_data(outfile, lampdict, valkey="scaled_vals")
 
 
@@ -33,6 +34,8 @@ def scale_lamp_to_max(max_val, ref_lamp, outfile):
     newdict = valdict.copy()
     newdict["values"] = valdict["values"] * factor
     lampdict["scaled_vals"] = newdict
+    lampdict["multiplier"] = 1
+    lampdict["multiplier"] = 1
     write_ies_data(outfile, lampdict, valkey="scaled_vals")
 
 
