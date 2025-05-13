@@ -1,8 +1,8 @@
 import numpy as np
 import pathlib
 import os
-from ._interpolate import interpolate_values
-from ._read import read_ies_data, verify_valdict
+from .interpolate import interpolate_values
+from .read import read_ies_data, verify_valdict
 
 
 def total_optical_power(data, num_thetas=181, num_phis=361, distance=1):

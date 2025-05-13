@@ -3,7 +3,7 @@ from pathlib import Path
 from collections import Counter
 import warnings
 import numpy as np
-from ._interpolate import interpolate_values
+from .interpolate import interpolate_values
 
 
 def read_ies_data(filedata, extend=True, interpolate=True):
