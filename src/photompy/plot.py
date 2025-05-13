@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import pathlib
 import warnings
-from ._interpolate import interpolate_values
-from ._read import read_ies_data
+from .interpolate import interpolate_values
+from .read import read_ies_data
 
 
 def plot_ies(
