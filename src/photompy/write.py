@@ -35,11 +35,10 @@ def scale_lamp_to_max(max_val, ref_lamp, outfile):
     newdict["values"] = valdict["values"] * factor
     lampdict["scaled_vals"] = newdict
     lampdict["multiplier"] = 1
-    lampdict["multiplier"] = 1
     write_ies_data(outfile, lampdict, valkey="scaled_vals")
 
 
-def _process_row(row, sigfigs=2):
+def process_row(row, sigfigs=2):
     total = 0
     newstring = ""
     for i, number in enumerate(row):
@@ -107,12 +106,12 @@ def write_ies_data(lampdict, filename=None, valkey="original_vals"):
     iesdata += " ".join([str(val) for val in row1]) + "\n"
     iesdata += " ".join([str(val) for val in row2]) + "\n"
     # thetas and phis
-    iesdata += _process_row(thetas)
-    iesdata += _process_row(phis)
+    iesdata += process_row(thetas)
+    iesdata += process_row(phis)
     # candela values
     candelas = ""
     for row in values:
-        candelas += _process_row(row, sigfigs=2)
+        candelas += process_row(row, sigfigs=2)
     iesdata += candelas
 
     # write

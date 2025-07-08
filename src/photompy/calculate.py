@@ -52,12 +52,12 @@ def _compute_total_power(valdict):
     thetasums = values.sum(axis=0) / len(phis)
     thetas1 = np.maximum(0, thetas - thetastep / 2)  # Avoid negative angles
     thetas2 = thetas + thetastep / 2
-    areas = _compute_frustrum_area(thetas1, thetas2)
+    areas = compute_frustrum_area(thetas1, thetas2)
     total_power = (thetasums * areas).sum()
     return total_power
 
 
-def _compute_frustrum_area(theta1, theta2):
+def compute_frustrum_area(theta1, theta2):
     a1 = 2 * np.pi * (1 - np.cos(np.radians(theta1)))  # r^2 = 1
     a2 = 2 * np.pi * (1 - np.cos(np.radians(theta2)))  # r^2 = 1
     return a2 - a1
