@@ -1,20 +1,31 @@
+import os
 import pathlib
 from pathlib import Path
-from collections import Counter
 import warnings
 import numpy as np
+from collections import Counter
 from .interpolate import interpolate_values
+
+_MAX_PATH = os.pathconf("/", "PC_PATH_MAX")
 
 
 def read_ies_data(filedata, extend=True, interpolate=True):
     """
     main .ies file reading function
     """
-    lines = _read_data(filedata)
+
+    warnings.warn(
+        "read_ies_data is deprecated; use IESFile.from_path() instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    raw, origin = load_bytes(filedata)
+    lines = raw.decode("utf-8").split("\n")
     lines = [line.strip() for line in lines]
 
     lampdict = {"source": filedata}
-    lampdict["version"] = _get_version(lines)
+    lampdict["version"] = get_version(lines)
 
     header = []
     for i, line in enumerate(lines):
@@ -25,16 +36,26 @@ def read_ies_data(filedata, extend=True, interpolate=True):
             else:
                 i = i + 1
             break
-
-    _process_keywords(header, lampdict)
+    lampdict["keywords"] = process_keywords(header)
 
     # all remaining data should be numeric
     data = " ".join(lines[i:]).split()
-    _process_header(data, lampdict)
+    lampdict.update(process_header(data))
 
     lampdict["lamp_type"] = "?"  # setting this here for readability
-    _read_angles(data, lampdict)
-    _get_lamp_type(lampdict)
+
+    num_thetas = lampdict["num_vertical_angles"]
+    num_phis = lampdict["num_horizontal_angles"]
+    blocks = data[13:]
+    thetas, phis, values = read_angles(blocks, num_thetas, num_phis)
+    lampdict["original_vals"] = {
+        "thetas": thetas,
+        "phis": phis,
+        "values": values,
+    }
+
+    photometry = lampdict["photometric_type"]
+    lampdict["photometry"] = get_lamp_type(phis, photometry)
 
     if extend:
         _format_angles(lampdict)
@@ -44,8 +65,52 @@ def read_ies_data(filedata, extend=True, interpolate=True):
     return lampdict
 
 
+def load_bytes(src, *, encoding: str = "utf-8"):
+    """
+    Normalise every input flavour to `bytes`.
+    data   : `bytes` – raw content
+    origin : `Path | None` – where it came from (if a real file)
+    """
+    # ── bytes already -------------------------------------------------
+    if isinstance(src, (bytes, bytearray)):
+        return bytes(src), None
+
+    # ── open file object ---------------------------------------------
+    if hasattr(src, "read"):
+        raw = src.read()
+        if isinstance(raw, str):
+            raw = raw.encode(encoding, "surrogateescape")
+        return raw, None
+
+    # ── string of some sort ----------------------------------------------
+    if isinstance(src, str):
+        # in-memory text, or path
+        if "TILT=" in src.upper():
+            return src.encode(encoding, "surrogateescape"), None
+        else:
+            return _read_file(src)
+
+    # --- Path ---------------
+    if isinstance(src, Path):
+        return _read_file(src)
+
+    # ── in‑memory text -----------------------------------------------
+    if isinstance(src, str):
+        return src.encode(encoding, "surrogateescape"), None
+
+    raise TypeError(f"Cannot interpret {type(src).__name__} as IES data")
+
+
+def _read_file(src):
+    p = Path(src)
+    if not p.is_file():
+        raise FileNotFoundError("Invalid path")
+    return p.read_bytes(), p
+
+
 def _read_data(fdata):
     """
+    DEPRECATED
     read string from filedata, which may be a path to a file, a bytes object,
     or a decoded string
     """
@@ -68,16 +133,19 @@ def _read_data(fdata):
     return string.split("\n")
 
 
-def _read_file(fdata):
-    """read string from filepath"""
-    filepath = Path(fdata)
-    filetype = filepath.suffix.lower()
-    if filetype != ".ies":
-        raise ValueError(f"File must be .ies, not {filetype}")
-    return filepath.read_text()
+# def _read_file(fdata):
+# """
+# DEPRECATED
+# read string from filepath
+# """
+# filepath = Path(fdata)
+# filetype = filepath.suffix.lower()
+# if filetype != ".ies":
+# raise ValueError(f"File must be .ies, not {filetype}")
+# return filepath.read_text()
 
 
-def _get_version(lines):
+def get_version(lines, strict=False):
     if lines[0].startswith("IESNA"):
         version = lines[0]
     else:
@@ -86,7 +154,7 @@ def _get_version(lines):
     return version
 
 
-def _process_keywords(header, lampdict):
+def process_keywords(header):
     # do some cleanup
     keylines = [line for line in header if line.startswith("[")]
     keys = [line.split("]")[0].strip("[") for line in keylines]
@@ -124,47 +192,41 @@ def _process_keywords(header, lampdict):
     newkeys.append(tiltkey)
     newvals.append(tiltval)
     keyword_dict = dict(zip(newkeys, newvals))
-    lampdict["keywords"] = keyword_dict
-    return lampdict
+    return keyword_dict
 
 
-def _process_header(data, lampdict):
+def process_header(data):
     """
     Process the numeric, non-keyword header data
     """
+    return {
+        "num_lamps": int(data[0]),
+        "lumens_per_lamp": float(data[1]),
+        "multiplier": float(data[2]),
+        "num_vertical_angles": int(data[3]),
+        "num_horizontal_angles": int(data[4]),
+        "photometric_type": int(data[5]),
+        "units_type": int(data[6]),
+        "width": float(data[7]),
+        "length": float(data[8]),
+        "height": float(data[9]),
+        "ballast_factor": float(data[10]),
+        "future_use": float(data[11]),
+        "input_watts": float(data[12]),
+    }
 
-    lampdict["num_lamps"] = int(data[0])
-    lampdict["lumens_per_lamp"] = float(data[1])
-    lampdict["multiplier"] = float(data[2])
-    lampdict["num_vertical_angles"] = int(data[3])
-    lampdict["num_horizontal_angles"] = int(data[4])
-    lampdict["photometric_type"] = int(data[5])
-    lampdict["units_type"] = int(data[6])
-    lampdict["width"] = float(data[7])
-    lampdict["length"] = float(data[8])
-    lampdict["height"] = float(data[9])
-    lampdict["ballast_factor"] = float(data[10])
-    lampdict["future_use"] = float(data[11])
-    lampdict["input_watts"] = float(data[12])
 
-    return lampdict
-
-
-def _read_angles(data, lampdict):
-    num_thetas = lampdict["num_vertical_angles"]
-    num_phis = lampdict["num_horizontal_angles"]
-
-    valdict = {}
+def read_angles(data, num_thetas, num_phis):
 
     # read vertical angles
-    v_start = 13
-    v_end = v_start + num_thetas
-    valdict["thetas"] = np.array(list(map(float, data[v_start:v_end])))
+    v_start = 0
+    v_end = num_thetas
+    thetas = np.array(list(map(float, data[v_start:v_end])))
 
     # read horizontal angles
     h_start = v_end
     h_end = h_start + num_phis
-    valdict["phis"] = np.array(list(map(float, data[h_start:h_end])))
+    phis = np.array(list(map(float, data[h_start:h_end])))
 
     # read values (1d and 2d)
     val_start = h_end
@@ -172,16 +234,12 @@ def _read_angles(data, lampdict):
     val_end = val_start + num_values
     vals = data[val_start:val_end]
     values = np.array(list(map(float, vals)))
-    valdict["values"] = values.reshape(num_phis, num_thetas)
+    values = values.reshape(num_phis, num_thetas)
 
-    verify_valdict(valdict)
-
-    lampdict["original_vals"] = valdict
-
-    return lampdict
+    return thetas, phis, values
 
 
-def _get_lamp_type(lampdict):
+def get_lamp_type(phis, photometry):
     """
     Determine lamp photometry type (A, B, and C), and lateral lamp symmetry
     (0, 90, 180, 360); determine if values imply that it is possible to extend
@@ -191,9 +249,6 @@ def _get_lamp_type(lampdict):
     """
 
     lamp_type = "?"
-
-    phis = lampdict["original_vals"]["phis"]
-    photometry = lampdict["photometric_type"]
 
     if photometry == 1:
         if phis[0] != 0:
@@ -237,9 +292,7 @@ def _get_lamp_type(lampdict):
         )
         warnings.warn(msg, stacklevel=2)
 
-    lampdict["lamp_type"] = lamp_type
-
-    return lampdict
+    return lamp_type
 
 
 def _format_angles(lampdict):

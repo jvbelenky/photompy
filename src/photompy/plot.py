@@ -123,9 +123,15 @@ def plot_ies(
 
 
 def plot_valdict_polar(valdict, title="", figsize=(6.4, 4.8)):
-    values = valdict["values"]
+
     thetas = valdict["thetas"]
     phis = valdict["phis"]
+    values = valdict["values"]
+
+    return plot_polar(thetas, phis, values, title=title, figsize=figsize)
+
+
+def plot_polar(thetas, phis, values, title="", figsize=(6.4, 4.8)):
 
     fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=figsize)
 
@@ -236,6 +242,33 @@ def plot_valdict_cartesian(
             values.shape, (len(phis), len(thetas))
         )
         raise ValueError(msg)
+
+    return plot_cartesian(
+        thetas,
+        phis,
+        values,
+        elev=elev,
+        azim=azim,
+        title=title,
+        figsize=figsize,
+        show_cbar=show_cbar,
+        alpha=alpha,
+        cmap=cmap,
+    )
+
+
+def plot_cartesian(
+    thetas,
+    phis,
+    values,
+    elev=-90,
+    azim=90,
+    title="",
+    figsize=(6, 4),
+    show_cbar=False,
+    alpha=0.7,
+    cmap="rainbow",
+):
 
     x, y, z = get_coords(thetas, phis, which="cartesian")
     intensity = values.flatten()
