@@ -23,7 +23,7 @@ class IESFile:
         if hasattr(self.header, name):
             return getattr(self.header, name)
         raise AttributeError(name)
-        
+
     def __deepcopy__(self, memo):
         """
         Custom deepcopy to avoid the __getattr__ recursion issue.
@@ -148,21 +148,21 @@ class IESFile:
         else:
             return iesdata.encode("utf-8")
 
-        def plot(
-            self,
-            plot_type="polar",  # polar | cartesian
-            which="full",  # orig | full | interp
-            interp_args=(181, 361),  # (num_thetas, num_phis)
-            **kwargs,
-        ):
-            """return a polar or 3d cartesian plot of the photometry"""
-            photometry = self._get_photometry(which, interp_args)
-            if plot_type.lower() == "polar":
-                return photometry.plot_polar(**kwargs)
-            elif plot_type.lower() == "cartesian":
-                return photometry.plot_cartesian(**kwargs)
-            else:
-                raise ValueError(f"unrecognized plot type {plot_type}")
+    def plot(
+        self,
+        plot_type="polar",  # polar | cartesian
+        which="full",  # orig | full | interp
+        interp_args=(181, 361),  # (num_thetas, num_phis)
+        **kwargs,
+    ):
+        """return a polar or 3d cartesian plot of the photometry"""
+        photometry = self._get_photometry(which, interp_args)
+        if plot_type.lower() == "polar":
+            return photometry.plot_polar(**kwargs)
+        elif plot_type.lower() == "cartesian":
+            return photometry.plot_cartesian(**kwargs)
+        else:
+            raise ValueError(f"unrecognized plot type {plot_type}")
 
     # ---------------- Internals -----------------------
     def _get_photometry(self, which, interp_args=(181, 361)):
