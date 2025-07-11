@@ -104,21 +104,29 @@ class Photometry:
     def scale_to_max(self, max_val):
         """scale the photometry to a maximum value"""
         self.values = self.values * max_val / self.values.max()
+        for phot in self._cache.values():
+            phot.values = phot.values * max_val / phot.values.max()
         return self.values
 
     def scale_to_total(self, total_power):
         """scale the photometry to a total optical power"""
         self.values = self.values * total_power / self.total()
+        for phot in self._cache.values():
+            phot.values = phot.values * total_power / phot.total()
         return self.values
 
     def scale_to_center(self, center_val):
         """scale the photometry to a center value"""
         self.values = self.values * center_val / self.get_intensity(0, 0)
+        for phot in self._cache.values():
+            phot.values = phot.values * center_val / phot.get_intensity(0, 0)
         return self.values
 
     def scale(self, scale_val):
         """scale the photometry by the given value"""
         self.values = self.values * scale_val
+        for phot in self._cache.values():
+            phot.values = phot.values * scale_val
         return self.values
 
     def get_intensity(self, theta, phi):
