@@ -6,7 +6,30 @@ import numpy as np
 from collections import Counter
 from .interpolate import interpolate_values
 
-_MAX_PATH = os.pathconf("/", "PC_PATH_MAX")
+
+
+def _get_max_path() -> int:
+    # POSIX: ask the kernel
+    if hasattr(os, "pathconf"):
+        try:                                # might fail on a weird FS
+            return os.pathconf("/", "PC_PATH_MAX")
+        except (OSError, ValueError):
+            pass                            # fall through to default
+
+    # Windows: use Win32 header value
+    if os.name == "nt":
+        try:
+            # 260 from <windows.h>; also available as ctypes.wintypes.MAX_PATH
+            import ctypes.wintypes
+            return ctypes.wintypes.MAX_PATH
+        except Exception:
+            return 260
+
+    # Last-ditch, reasonable POSIX default
+    return 4096                             # Linux usually reports 4096
+
+_MAX_PATH = _get_max_path()
+#_MAX_PATH = os.pathconf("/", "PC_PATH_MAX")
 
 
 def read_ies_data(filedata, extend=True, interpolate=True):
@@ -115,7 +138,7 @@ def _read_data(fdata):
     or a decoded string
     """
 
-    if isinstance(fdata, pathlib.PosixPath):
+    if isinstance(fdata, pathlib.PurePath):
         string = _read_file(fdata)
     elif isinstance(fdata, str):
         if fdata.startswith("IESNA"):
