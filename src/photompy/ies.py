@@ -15,6 +15,7 @@ class IESFile:
     header: IESHeader
     photometry: Photometry
 
+    # TODO: fix this
     # attribute passthrough to header / photometry -------------
     def __getattr__(self, name):
         # called only if normal attribute lookup fails
@@ -43,6 +44,13 @@ class IESFile:
                 setattr(new_obj, k, v)
 
         return new_obj
+
+    def __eq__(self, other):
+        if self.header != other.header:
+            return False
+        if self.photometry != other.photometry:
+            return False
+        return True
 
     def to_dict(self):
         return asdict(self)

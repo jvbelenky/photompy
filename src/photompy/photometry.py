@@ -27,7 +27,7 @@ class Photometry:
     values: np.ndarray
     photometric_type: PhotometricType
     symmetry: LampSymmetry = field(init=False)
-    strict: bool = True
+    strict: bool = True  # ?? I don't actually remember why this is here or what it's supposed to do
 
     _cache: dict = field(
         default_factory=dict,
@@ -40,6 +40,25 @@ class Photometry:
         if self.values.shape != (len(self.phis), len(self.thetas)):
             raise IESDataError("values shape mismatch")
         self.symmetry = self._infer_symmetry()
+
+    def __eq__(self, other):
+        if not isinstance(other, Photometry):
+            return NotImplemented
+
+        if self.photometric_type != other.photometric_type:
+            return False
+
+        if self.symmetry != other.symmetry:
+            return False
+
+        if not np.array_equal(self.thetas, other.thetas):
+            return False
+        if not np.array_equal(self.phis, other.phis):
+            return False
+        if not np.array_equal(self.values, other.values):
+            return False
+
+        return True
 
     @property
     def coords(self):
@@ -103,30 +122,42 @@ class Photometry:
 
     def scale_to_max(self, max_val):
         """scale the photometry to a maximum value"""
+        if max_val <= 0:
+            raise ValueError("scaling value must be positive")
         self.values = self.values * max_val / self.values.max()
         for phot in self._cache.values():
-            phot.values = phot.values * max_val / phot.values.max()
+            if isinstance(phot, Photometry):
+                phot.values = phot.values * max_val / phot.values.max()
         return self.values
 
     def scale_to_total(self, total_power):
         """scale the photometry to a total optical power"""
+        if total_power <= 0:
+            raise ValueError("scaling value must be positive")
         self.values = self.values * total_power / self.total()
         for phot in self._cache.values():
-            phot.values = phot.values * total_power / phot.total()
+            if isinstance(phot, Photometry):
+                phot.values = phot.values * total_power / phot.total()
         return self.values
 
     def scale_to_center(self, center_val):
         """scale the photometry to a center value"""
+        if center_val <= 0:
+            raise ValueError("scaling value must be positive")
         self.values = self.values * center_val / self.get_intensity(0, 0)
         for phot in self._cache.values():
-            phot.values = phot.values * center_val / phot.get_intensity(0, 0)
+            if isinstance(phot, Photometry):
+                phot.values = phot.values * center_val / phot.get_intensity(0, 0)
         return self.values
 
     def scale(self, scale_val):
         """scale the photometry by the given value"""
+        if scale_val <= 0:
+            raise ValueError("scaling value must be positive")
         self.values = self.values * scale_val
         for phot in self._cache.values():
-            phot.values = phot.values * scale_val
+            if isinstance(phot, Photometry):
+                phot.values = phot.values * scale_val
         return self.values
 
     def get_intensity(self, theta, phi):
