@@ -7,29 +7,30 @@ from collections import Counter
 from .interpolate import interpolate_values
 
 
-
 def _get_max_path() -> int:
     # POSIX: ask the kernel
     if hasattr(os, "pathconf"):
-        try:                                # might fail on a weird FS
+        try:  # might fail on a weird FS
             return os.pathconf("/", "PC_PATH_MAX")
         except (OSError, ValueError):
-            pass                            # fall through to default
+            pass  # fall through to default
 
     # Windows: use Win32 header value
     if os.name == "nt":
         try:
             # 260 from <windows.h>; also available as ctypes.wintypes.MAX_PATH
             import ctypes.wintypes
+
             return ctypes.wintypes.MAX_PATH
         except Exception:
             return 260
 
     # Last-ditch, reasonable POSIX default
-    return 4096                             # Linux usually reports 4096
+    return 4096  # Linux usually reports 4096
+
 
 _MAX_PATH = _get_max_path()
-#_MAX_PATH = os.pathconf("/", "PC_PATH_MAX")
+# _MAX_PATH = os.pathconf("/", "PC_PATH_MAX")
 
 
 def read_ies_data(filedata, extend=True, interpolate=True):
@@ -182,6 +183,7 @@ def process_keywords(header):
     keylines = [line for line in header if line.startswith("[")]
     keys = [line.split("]")[0].strip("[") for line in keylines]
     vals = ["".join(line.split("]")[1:]) for line in keylines]
+    vals = [val.strip() for val in vals]
 
     # make all keys unique
     non_unique_keys = [k for (k, v) in Counter(keys).items() if v > 1 and k != "MORE"]
