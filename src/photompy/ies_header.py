@@ -194,9 +194,18 @@ class IESHeader:
         """return as dict"""
         return asdict(self)
 
+    def to_float(self) -> list:
+        dct = self.to_dict()
+        dct.pop("version", None)
+        dct.pop("keywords", None)
+        return [float(val) for val in dct.values()]
+
     def numeric_to_string(self):
         """return the numeric/non-keyword strings"""
-        return [str(val) for val in self.to_dict().values()][2:]
+        dct = self.to_dict()
+        dct.pop("version", None)
+        dct.pop("keywords", None)
+        return [str(val) for val in dct.values()]
 
     def to_string(self):
         """convert header to a string ready for writing to a file"""
