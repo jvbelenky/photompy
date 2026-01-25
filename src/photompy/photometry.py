@@ -201,11 +201,13 @@ class Photometry:
         # Compute interpolation weights (with division-by-zero protection)
         phi_denom = phimap[phi_indices] - phimap[phi_indices - 1]
         theta_denom = thetamap[theta_indices] - thetamap[theta_indices - 1]
-        phi_weights = np.where(
-            phi_denom != 0, (phi - phimap[phi_indices - 1]) / phi_denom, 0.0
+        phi_weights = np.divide(
+            phi - phimap[phi_indices - 1], phi_denom,
+            out=np.zeros_like(phi, dtype=float), where=phi_denom != 0
         )
-        theta_weights = np.where(
-            theta_denom != 0, (theta - thetamap[theta_indices - 1]) / theta_denom, 0.0
+        theta_weights = np.divide(
+            theta - thetamap[theta_indices - 1], theta_denom,
+            out=np.zeros_like(theta, dtype=float), where=theta_denom != 0
         )
 
         # Interpolate values
@@ -287,7 +289,7 @@ class Photometry:
         if self.photometric_type == PhotometricType.C:
             if self.symmetry == LampSymmetry.AXIAL:  # C0
                 phis = np.arange(0, 360)
-                values = np.tile(self.values, 360).reshape(-1, 360)
+                values = np.tile(self.values, (360, 1))  # repeat rows for each phi
             elif self.symmetry == LampSymmetry.QUAD:  # C90
                 phis1 = self.phis
                 phis2 = phis1[1:] + 90

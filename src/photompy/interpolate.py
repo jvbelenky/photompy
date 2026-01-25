@@ -67,11 +67,13 @@ def get_intensity(theta, phi, valdict):
     # Compute interpolation weights (with division-by-zero protection)
     phi_denom = phimap[phi_indices] - phimap[phi_indices - 1]
     theta_denom = thetamap[theta_indices] - thetamap[theta_indices - 1]
-    phi_weights = np.where(
-        phi_denom != 0, (phi - phimap[phi_indices - 1]) / phi_denom, 0.0
+    phi_weights = np.divide(
+        phi - phimap[phi_indices - 1], phi_denom,
+        out=np.zeros_like(phi, dtype=float), where=phi_denom != 0
     )
-    theta_weights = np.where(
-        theta_denom != 0, (theta - thetamap[theta_indices - 1]) / theta_denom, 0.0
+    theta_weights = np.divide(
+        theta - thetamap[theta_indices - 1], theta_denom,
+        out=np.zeros_like(theta, dtype=float), where=theta_denom != 0
     )
 
     # Interpolate values
