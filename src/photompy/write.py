@@ -101,8 +101,14 @@ def write_ies_data(lampdict, filename=None, valkey="original_vals"):
         else:
             iesdata += key + "=" + val + "\n"
 
-    row1 = list(lampdict.values())[3:13]
-    row2 = list(lampdict.values())[13:16]
+    row1_keys = [
+        "num_lamps", "lumens_per_lamp", "multiplier",
+        "num_vertical_angles", "num_horizontal_angles",
+        "photometric_type", "units_type", "width", "length", "height"
+    ]
+    row2_keys = ["ballast_factor", "future_use", "input_watts"]
+    row1 = [lampdict[key] for key in row1_keys]
+    row2 = [lampdict[key] for key in row2_keys]
     iesdata += " ".join([str(val) for val in row1]) + "\n"
     iesdata += " ".join([str(val) for val in row2]) + "\n"
     # thetas and phis
