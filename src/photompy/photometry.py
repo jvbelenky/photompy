@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum, Enum
 import numpy as np
+import hashlib
 from .calculate import compute_frustrum_area
 from .plot import plot_polar, plot_cartesian
 from .exceptions import IESDataError
@@ -109,6 +110,11 @@ class Photometry:
             interp = self._interpolate_angles(num_thetas, num_phis)
             self._cache[key] = interp
         return interp
+        
+    def to_fingerprint(self) -> bytes:
+        """hash the photometry"""
+        arr = np.concatenate([self.thetas,self.phis,self.values.flatten()])
+        return hashlib.sha1(arr.tobytes()).digest()
 
     def total_optical_power(self) -> float:
         """compute the total optical power"""
@@ -295,7 +301,7 @@ class Photometry:
 
             elif self.symmetry == LampSymmetry.HALF:  # C180
                 phis1 = self.phis
-                phis2 = phis[1:] + 180
+                phis2 = phis1[1:] + 180
                 phis = np.concatenate((phis1, phis2))
                 vals1 = self.values[:-1]
                 vals2 = np.flip(self.values, axis=0)
