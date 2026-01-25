@@ -90,9 +90,9 @@ def lamp_area(filename, units="meters", verbose=False):
 
     if units.lower() == "feet":
         area = width_ft * length_ft
-    if units.lower() == "meters":
+    elif units.lower() == "meters":
         area = width_m * length_m
-    if units.lower() == "inches":
+    elif units.lower() == "inches":
         area = width_in * length_in
     if verbose:
         print("Area (cm2)", width_m * length_m * 100 * 100)

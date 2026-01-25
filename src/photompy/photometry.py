@@ -28,7 +28,6 @@ class Photometry:
     values: np.ndarray
     photometric_type: PhotometricType
     symmetry: LampSymmetry = field(init=False)
-    strict: bool = True  # ?? I don't actually remember why this is here or what it's supposed to do
 
     _cache: dict = field(
         default_factory=dict,
@@ -101,8 +100,23 @@ class Photometry:
         return exp
 
     def interpolated(self, num_thetas=181, num_phis=361):
-        """return a fully mirrored photometry with"""
+        """Return a fully expanded and interpolated photometry.
 
+        Creates a new Photometry with evenly-spaced angles and bilinearly
+        interpolated intensity values. The result is cached for efficiency.
+
+        Parameters
+        ----------
+        num_thetas : int, default=181
+            Number of theta (vertical) angles in result (0-180 range).
+        num_phis : int, default=361
+            Number of phi (horizontal) angles in result (0-360 range).
+
+        Returns
+        -------
+        Photometry
+            New photometry with interpolated values.
+        """
         key = ("interpolated", num_thetas, num_phis)
         try:
             interp = self._cache[key]
