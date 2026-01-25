@@ -12,6 +12,7 @@ from .calculate import total_optical_power, lamp_area
 from .ies import IESFile
 from .photometry import Photometry
 from .tilt import TiltData, LampGeometry
+from .ies_header import FileGeneration
 
 __all__ = [
     "read_ies_data",
@@ -31,4 +32,5 @@ __all__ = [
     "Photometry",
     "TiltData",
     "LampGeometry",
+    "FileGeneration",
 ]
