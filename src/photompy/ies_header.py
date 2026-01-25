@@ -1,9 +1,11 @@
 from dataclasses import dataclass, asdict, replace
 from enum import IntEnum, StrEnum
 from datetime import date
+from typing import Union
 import warnings
 from .exceptions import IESHeaderError
 from .photometry import PhotometricType
+from .tilt import TiltData
 
 
 class Units(IntEnum):
@@ -63,7 +65,7 @@ class IESVersion(StrEnum):
 class IESHeader:
     version: str
     keywords: dict
-    # tilt: str | None  # NONE | Include | Path
+    tilt: Union[str, TiltData, None]  # "NONE" | TiltData | filename
     num_lamps: int
     lumens_per_lamp: float
     multiplier: float
@@ -96,7 +98,7 @@ class IESHeader:
         version: str,
         numeric: list,  # 13 tokens as strings
         keywords: dict,
-        # tilt: str,  # temp! currently just a raw string
+        tilt: Union[str, TiltData, None] = "NONE",
         strict: bool = True,
     ):
 
@@ -120,8 +122,6 @@ class IESHeader:
             units = Units.FEET  # guess
             warnings.warn(msg, stacklevel=3)
 
-        # TODO: processing of TILT goes here
-
         # # version-dependent interpretation of column 11 --------------
         # if version.endswith("2019"):
         # try:
@@ -139,7 +139,7 @@ class IESHeader:
         return cls(
             version=version,
             keywords=keywords,
-            # tilt=tilt,
+            tilt=tilt,
             num_lamps=int(nums[0]),
             lumens_per_lamp=nums[1],
             multiplier=nums[2],
@@ -174,7 +174,7 @@ class IESHeader:
         return cls(
             version=IESVersion.V2019,
             keywords=keywords,
-            # tilt="NONE",
+            tilt="NONE",
             num_lamps=1,
             lumens_per_lamp=1.0,
             multiplier=1.0,
@@ -198,6 +198,7 @@ class IESHeader:
         dct = self.to_dict()
         dct.pop("version", None)
         dct.pop("keywords", None)
+        dct.pop("tilt", None)
         return [float(val) for val in dct.values()]
 
     def numeric_to_string(self):
@@ -205,22 +206,36 @@ class IESHeader:
         dct = self.to_dict()
         dct.pop("version", None)
         dct.pop("keywords", None)
+        dct.pop("tilt", None)
         return [str(val) for val in dct.values()]
 
     def to_string(self):
         """convert header to a string ready for writing to a file"""
         # top of the file
         iesdata = self.version.to_header() + "\n"
-        # header
+        # keywords
         for key, val in self.keywords.items():
             if key != "TILT":
                 iesdata += f"[{key}] {val}\n"
-            else:
-                iesdata += f"{key}={val}\n"
+        # TILT line(s)
+        iesdata += self._tilt_to_string()
+        # numeric line
         numeric = self.numeric_to_string()
         iesdata += " ".join(numeric[0:10]) + "\n"
         iesdata += " ".join(numeric[10:13]) + "\n"
         return iesdata
+
+    def _tilt_to_string(self) -> str:
+        """Convert tilt data to string for writing."""
+        if self.tilt is None or self.tilt == "NONE":
+            return "TILT=NONE\n"
+        elif isinstance(self.tilt, TiltData):
+            lines = ["TILT=INCLUDE"]
+            lines.extend(self.tilt.to_lines())
+            return "\n".join(lines) + "\n"
+        else:
+            # TILT=<filename> (LM-63-2002 only)
+            return f"TILT={self.tilt}\n"
 
     def update(self, **changes):
         if changes.get("units") is not None:

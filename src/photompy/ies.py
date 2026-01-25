@@ -7,6 +7,7 @@ from .read import load_bytes, process_keywords, read_angles
 from .write import process_row
 from .exceptions import IESPathError, IESHeaderError  # , IESDecodeError,
 from .ies_header import IESHeader, IESVersion
+from .tilt import TiltData
 
 
 @dataclass
@@ -64,7 +65,6 @@ class IESFile:
 
         string = raw.decode("utf-8")
 
-        # TODO: tilt is currently in process_keywords, should be moved out separately
         version, header, tilt, numeric, blocks = cls._split_string(string)
 
         version = IESVersion.from_token(version, strict=strict)
@@ -72,7 +72,7 @@ class IESFile:
         hdr = IESHeader.from_tokens(
             version=version,
             keywords=process_keywords(header),
-            # tilt=tilt,
+            tilt=tilt,
             numeric=numeric,
             strict=strict,
         )
@@ -193,25 +193,45 @@ class IESFile:
 
     @staticmethod
     def _split_string(string):
-        """TODO: tilt handling"""
+        """
+        Split IES file string into components.
+
+        Returns:
+            version: Version line (e.g., "IES:LM-63-2019")
+            header: List of header/keyword lines (excluding TILT)
+            tilt: "NONE", TiltData object, or filename string
+            numeric: List of 13 numeric strings
+            blocks: List of remaining data tokens (angles and candela values)
+        """
         lines = string.split("\n")
         lines = [line.strip() for line in lines]
         version = lines[0]
         header = []
         tilt = None
+        data_start_idx = None
+
         for i, line in enumerate(lines):
-            header.append(line)
             if line.startswith("TILT="):
                 if line == "TILT=INCLUDE":
-                    tilt = lines[i : i + 5]
-                    i = i + 5
+                    # Parse 4 additional lines after TILT=INCLUDE
+                    tilt_lines = lines[i + 1 : i + 5]
+                    tilt = TiltData.from_lines(tilt_lines)
+                    data_start_idx = i + 5
+                elif line == "TILT=NONE":
+                    tilt = "NONE"
+                    data_start_idx = i + 1
                 else:
-                    tilt = line
-                    i = i + 1
+                    # TILT=<filename>
+                    tilt = line.split("=", 1)[1]
+                    data_start_idx = i + 1
                 break
+            else:
+                header.append(line)
+
         if tilt is None:
             raise IESHeaderError("File is malformed; TILT= line missing")
-        data = " ".join(lines[i:]).split()
+
+        data = " ".join(lines[data_start_idx:]).split()
         numeric = data[0:13]
         blocks = data[13:]
         return version, header, tilt, numeric, blocks

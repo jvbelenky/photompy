@@ -52,18 +52,26 @@ def read_ies_data(filedata, extend=True, interpolate=True):
     lampdict["version"] = get_version(lines)
 
     header = []
+    data_start_idx = None
+    tilt_value = None
     for i, line in enumerate(lines):
-        header.append(line)
         if line.startswith("TILT="):
+            tilt_value = line.split("=", 1)[1]
             if line == "TILT=INCLUDE":
-                i = i + 5
+                data_start_idx = i + 5
             else:
-                i = i + 1
+                data_start_idx = i + 1
             break
-    lampdict["keywords"] = process_keywords(header)
+        else:
+            header.append(line)
+    keywords = process_keywords(header)
+    # Legacy API: add TILT to keywords for write_ies_data compatibility
+    if tilt_value is not None:
+        keywords["TILT"] = tilt_value
+    lampdict["keywords"] = keywords
 
     # all remaining data should be numeric
-    data = " ".join(lines[i:]).split()
+    data = " ".join(lines[data_start_idx:]).split()
     lampdict.update(process_header(data))
 
     lampdict["lamp_type"] = "?"  # setting this here for readability
@@ -211,11 +219,7 @@ def process_keywords(header):
             k = i + j + 1
             newvals.append(" ".join(vals[i:k]))
             continue
-    # deal with tilt
-    tiltline = [line for line in header if line.startswith("TILT")][0]
-    tiltkey, tiltval = tiltline.split("=")
-    newkeys.append(tiltkey)
-    newvals.append(tiltval)
+    # Note: TILT is now handled separately by IESFile._split_string
     keyword_dict = dict(zip(newkeys, newvals))
     return keyword_dict
 

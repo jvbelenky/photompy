@@ -11,6 +11,7 @@ from .interpolate import get_intensity, interpolate_values
 from .calculate import total_optical_power, lamp_area
 from .ies import IESFile
 from .photometry import Photometry
+from .tilt import TiltData, LampGeometry
 
 __all__ = [
     "read_ies_data",
@@ -28,4 +29,6 @@ __all__ = [
     "lamp_area",
     "IESFile",
     "Photometry",
+    "TiltData",
+    "LampGeometry",
 ]

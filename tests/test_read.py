@@ -54,28 +54,26 @@ class TestGetVersion:
 
 class TestProcessKeywords:
     def test_basic_keywords(self):
+        # Note: TILT is now handled separately by IESFile._split_string
         header = [
             "[TEST] Test Value",
             "[MANUFAC] Company",
-            "TILT=NONE"
         ]
         result = process_keywords(header)
         assert result["TEST"] == "Test Value"
         assert result["MANUFAC"] == "Company"
-        assert result["TILT"] == "NONE"
 
-    def test_tilt_include(self):
+    def test_tilt_not_in_keywords(self):
+        # TILT is now handled separately and should not be in keywords
         header = [
             "[TEST] Test",
-            "TILT=INCLUDE"
         ]
         result = process_keywords(header)
-        assert result["TILT"] == "INCLUDE"
+        assert "TILT" not in result
 
     def test_empty_value(self):
         header = [
             "[EMPTY]",
-            "TILT=NONE"
         ]
         result = process_keywords(header)
         assert result["EMPTY"] == ""
