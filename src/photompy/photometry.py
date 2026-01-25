@@ -279,6 +279,13 @@ class Photometry:
         return np.array([xp, yp, -zp]).T
 
     def _infer_symmetry(self):
+        """
+        Infer lamp symmetry from horizontal angle range.
+
+        Type C: phis are horizontal angles (0-360 or subset)
+        Type B: phis are horizontal angles H (-90 to 90 or 0 to 90)
+        Type A: phis are horizontal angles (similar to Type B, rotated 90)
+        """
 
         if self.photometric_type == PhotometricType.C:
             if not np.isclose(self.phis[0], 0):
@@ -294,62 +301,196 @@ class Photometry:
             if np.isclose(span, 0):
                 return LampSymmetry.AXIAL
             return LampSymmetry.UNKNOWN
-        else:
-            # A and B symmetries not yet supported
+
+        elif self.photometric_type == PhotometricType.B:
+            # Type B: H angles from -90 to 90 or 0 to 90
+            first_h = self.phis[0]
+            last_h = self.phis[-1]
+
+            if np.isclose(first_h, 0) and np.isclose(last_h, 90):
+                return LampSymmetry.QUAD  # Quadrant symmetric
+            elif np.isclose(first_h, -90) and np.isclose(last_h, 90):
+                return LampSymmetry.HALF  # Only half symmetric (left-right)
+            elif np.isclose(first_h, 0) and np.isclose(last_h, 0):
+                return LampSymmetry.AXIAL  # Single plane
             return LampSymmetry.UNKNOWN
+
+        elif self.photometric_type == PhotometricType.A:
+            # Type A: Similar to Type B
+            first_h = self.phis[0]
+            last_h = self.phis[-1]
+
+            if np.isclose(first_h, 0) and np.isclose(last_h, 90):
+                return LampSymmetry.QUAD
+            elif np.isclose(first_h, -90) and np.isclose(last_h, 90):
+                return LampSymmetry.HALF
+            elif np.isclose(first_h, 0) and np.isclose(last_h, 0):
+                return LampSymmetry.AXIAL
+            return LampSymmetry.UNKNOWN
+
+        return LampSymmetry.UNKNOWN
 
     def _expand_angles(self):
         """return a photometry with fully mirrored values"""
         if self.photometric_type == PhotometricType.C:
-            if self.symmetry == LampSymmetry.AXIAL:  # C0
-                phis = np.arange(0, 360)
-                values = np.tile(self.values, (360, 1))  # repeat rows for each phi
-            elif self.symmetry == LampSymmetry.QUAD:  # C90
-                phis1 = self.phis
-                phis2 = phis1[1:] + 90
-                phis3 = phis1[1:] + 180
-                phis4 = phis1[1:] + 270
-                phis = np.concatenate((phis1, phis2, phis3, phis4))
+            return self._expand_angles_type_c()
+        elif self.photometric_type == PhotometricType.B:
+            return self._expand_angles_type_b()
+        elif self.photometric_type == PhotometricType.A:
+            return self._expand_angles_type_a()
+        else:
+            raise NotImplementedError(
+                f"Photometric type {self.photometric_type} is not supported"
+            )
 
-                vals1 = self.values[:-1]
-                vals2 = np.flip(self.values, axis=0)
-                vals3 = np.concatenate((vals1, vals2))
-                vals4 = np.flip(vals3[:-1], axis=0)
-                values = np.concatenate((vals3, vals4))
+    def _expand_angles_type_c(self):
+        """Expand Type C photometry based on symmetry."""
+        if self.symmetry == LampSymmetry.AXIAL:  # C0
+            phis = np.arange(0, 360)
+            values = np.tile(self.values, (360, 1))  # repeat rows for each phi
+        elif self.symmetry == LampSymmetry.QUAD:  # C90
+            phis1 = self.phis
+            phis2 = phis1[1:] + 90
+            phis3 = phis1[1:] + 180
+            phis4 = phis1[1:] + 270
+            phis = np.concatenate((phis1, phis2, phis3, phis4))
 
-            elif self.symmetry == LampSymmetry.HALF:  # C180
-                phis1 = self.phis
-                phis2 = phis1[1:] + 180
-                phis = np.concatenate((phis1, phis2))
-                vals1 = self.values[:-1]
-                vals2 = np.flip(self.values, axis=0)
-                values = np.concatenate((vals1, vals2))
-            elif self.symmetry == LampSymmetry.NONE:
-                phis = self.phis
-                values = self.values
-            else:
-                raise NotImplementedError(
-                    f"Lamp symmetry {self.symmetry} is not supported"
-                )
+            vals1 = self.values[:-1]
+            vals2 = np.flip(self.values, axis=0)
+            vals3 = np.concatenate((vals1, vals2))
+            vals4 = np.flip(vals3[:-1], axis=0)
+            values = np.concatenate((vals3, vals4))
 
-            # fill in thetas
-            if np.isclose(self.thetas[-1], 90):
-                val = self.thetas[-1]
-                step = self.thetas[-1] - self.thetas[-2]
-                extrathetas = []
-                while val < 180:
-                    val = val + step
-                    extrathetas.append(val)
-                extravals = np.zeros((len(phis), len(extrathetas)))
+        elif self.symmetry == LampSymmetry.HALF:  # C180
+            phis1 = self.phis
+            phis2 = phis1[1:] + 180
+            phis = np.concatenate((phis1, phis2))
+            vals1 = self.values[:-1]
+            vals2 = np.flip(self.values, axis=0)
+            values = np.concatenate((vals1, vals2))
+        elif self.symmetry == LampSymmetry.NONE:
+            phis = self.phis
+            values = self.values
+        else:
+            raise NotImplementedError(
+                f"Lamp symmetry {self.symmetry} is not supported for Type C"
+            )
 
-                thetas = np.concatenate((self.thetas, extrathetas))
-                values = np.concatenate((values.T, extravals.T)).T
+        # fill in thetas
+        if np.isclose(self.thetas[-1], 90):
+            val = self.thetas[-1]
+            step = self.thetas[-1] - self.thetas[-2]
+            extrathetas = []
+            while val < 180:
+                val = val + step
+                extrathetas.append(val)
+            extravals = np.zeros((len(phis), len(extrathetas)))
 
-            else:
-                thetas = self.thetas
+            thetas = np.concatenate((self.thetas, extrathetas))
+            values = np.concatenate((values.T, extravals.T)).T
 
         else:
-            raise NotImplementedError("A and B photometries are not yet supported")
+            thetas = self.thetas
+
+        return Photometry(
+            thetas=thetas,
+            phis=phis,
+            values=values,
+            photometric_type=self.photometric_type,
+        )
+
+    def _expand_angles_type_b(self):
+        """
+        Expand Type B photometry based on symmetry.
+
+        Type B coordinate system:
+        - Vertical angles (V): stored in thetas, range -90 to 90 (or 0 to 90)
+        - Horizontal angles (H): stored in phis, range -90 to 90 (or 0 to 90)
+
+        For expansion, we mirror to get full coverage.
+        """
+        thetas = self.thetas.copy()
+        values = self.values.copy()
+
+        # Expand vertical angles (thetas) to -90 to 90 if needed
+        if np.isclose(thetas[0], 0) and np.isclose(thetas[-1], 90):
+            # V goes from 0 to 90, mirror to -90 to 90
+            neg_thetas = -np.flip(thetas[1:])  # -90 to -step (excluding 0)
+            thetas = np.concatenate((neg_thetas, thetas))
+            # Mirror values: negative V angles have same values as positive
+            neg_values = np.flip(values, axis=1)[:, 1:]
+            values = np.concatenate((neg_values, values), axis=1)
+
+        # Expand horizontal angles (phis)
+        if self.symmetry == LampSymmetry.QUAD:
+            # H goes from 0 to 90, mirror to -90 to 90
+            phis1 = self.phis
+            phis2 = -np.flip(phis1[1:])  # -90 to -step (excluding 0)
+            phis = np.concatenate((phis2, phis1))
+
+            vals1 = values
+            vals2 = np.flip(values[1:], axis=0)
+            values = np.concatenate((vals2, vals1))
+
+        elif self.symmetry == LampSymmetry.HALF:
+            # H already goes from -90 to 90
+            phis = self.phis
+
+        elif self.symmetry == LampSymmetry.AXIAL:
+            # Single plane: expand to full H range
+            phis = np.linspace(-90, 90, 181)
+            values = np.tile(values, (len(phis), 1))
+
+        else:
+            raise NotImplementedError(
+                f"Lamp symmetry {self.symmetry} is not supported for Type B"
+            )
+
+        return Photometry(
+            thetas=thetas,
+            phis=phis,
+            values=values,
+            photometric_type=self.photometric_type,
+        )
+
+    def _expand_angles_type_a(self):
+        """
+        Expand Type A photometry based on symmetry.
+
+        Type A is similar to Type B but rotated 90 degrees.
+        Uses the same expansion logic as Type B.
+        """
+        thetas = self.thetas.copy()
+        values = self.values.copy()
+
+        # Expand vertical angles (thetas) to -90 to 90 if needed
+        if np.isclose(thetas[0], 0) and np.isclose(thetas[-1], 90):
+            neg_thetas = -np.flip(thetas[1:])
+            thetas = np.concatenate((neg_thetas, thetas))
+            neg_values = np.flip(values, axis=1)[:, 1:]
+            values = np.concatenate((neg_values, values), axis=1)
+
+        # Expand horizontal angles (phis)
+        if self.symmetry == LampSymmetry.QUAD:
+            phis1 = self.phis
+            phis2 = -np.flip(phis1[1:])
+            phis = np.concatenate((phis2, phis1))
+
+            vals1 = values
+            vals2 = np.flip(values[1:], axis=0)
+            values = np.concatenate((vals2, vals1))
+
+        elif self.symmetry == LampSymmetry.HALF:
+            phis = self.phis
+
+        elif self.symmetry == LampSymmetry.AXIAL:
+            phis = np.linspace(-90, 90, 181)
+            values = np.tile(values, (len(phis), 1))
+
+        else:
+            raise NotImplementedError(
+                f"Lamp symmetry {self.symmetry} is not supported for Type A"
+            )
 
         return Photometry(
             thetas=thetas,
