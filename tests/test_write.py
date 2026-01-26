@@ -2,8 +2,9 @@
 import pytest
 import numpy as np
 import warnings
-from photompy.write import process_row, write_ies_data
+from photompy.write import process_row, write_ies_data, scale_lamp_to_max, scale_lamp_to_total
 from photompy.read import read_ies_data
+from photompy import total_optical_power
 
 
 class TestProcessRow:
@@ -121,3 +122,61 @@ class TestWriteIesData:
             warnings.simplefilter("ignore", DeprecationWarning)
             reread = read_ies_data(outfile)
         assert reread["multiplier"] == 1.0
+
+
+class TestScaleLampFunctions:
+    """Tests for scale_lamp_to_max and scale_lamp_to_total functions."""
+
+    def test_scale_lamp_to_max(self, sample_path, tmp_path):
+        """scale_lamp_to_max should scale to specified maximum."""
+        outfile = tmp_path / "scaled_max.ies"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            scale_lamp_to_max(5000, sample_path / "sample_A.ies", outfile)
+
+        assert outfile.exists()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            reread = read_ies_data(outfile)
+
+        # Check max value is close to target
+        max_val = reread["original_vals"]["values"].max()
+        assert np.isclose(max_val, 5000, rtol=0.01)
+
+    def test_scale_lamp_to_total(self, sample_path, tmp_path):
+        """scale_lamp_to_total should scale to specified total power."""
+        target_power = 1000
+        outfile = tmp_path / "scaled_total.ies"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            scale_lamp_to_total(target_power, sample_path / "sample_A.ies", outfile)
+
+        assert outfile.exists()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            reread = read_ies_data(outfile)
+
+        # Check total power is close to target
+        power = total_optical_power(reread["original_vals"])
+        assert np.isclose(power, target_power, rtol=0.05)
+
+    def test_scale_preserves_distribution(self, sample_path, tmp_path):
+        """Scaling should preserve relative distribution."""
+        outfile = tmp_path / "scaled.ies"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            original = read_ies_data(sample_path / "sample_A.ies")
+            scale_lamp_to_max(5000, sample_path / "sample_A.ies", outfile)
+            scaled = read_ies_data(outfile)
+
+        # Ratios between values should be preserved
+        orig_vals = original["original_vals"]["values"]
+        scaled_vals = scaled["original_vals"]["values"]
+
+        # Check a few ratios
+        if orig_vals[0, 0] > 0:
+            orig_ratio = orig_vals[0, 1] / orig_vals[0, 0]
+            scaled_ratio = scaled_vals[0, 1] / scaled_vals[0, 0]
+            assert np.isclose(orig_ratio, scaled_ratio, rtol=0.01)

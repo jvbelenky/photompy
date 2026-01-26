@@ -17,7 +17,7 @@ def scale_lamp_to_total(total_power, ref_lamp, outfile):
     newdict["values"] = valdict["values"] * factor
     lampdict["scaled_vals"] = newdict
     lampdict["multiplier"] = 1
-    write_ies_data(outfile, lampdict, valkey="scaled_vals")
+    write_ies_data(lampdict, filename=outfile, valkey="scaled_vals")
 
 
 def scale_lamp_to_max(max_val, ref_lamp, outfile):
@@ -35,7 +35,7 @@ def scale_lamp_to_max(max_val, ref_lamp, outfile):
     newdict["values"] = valdict["values"] * factor
     lampdict["scaled_vals"] = newdict
     lampdict["multiplier"] = 1
-    write_ies_data(outfile, lampdict, valkey="scaled_vals")
+    write_ies_data(lampdict, filename=outfile, valkey="scaled_vals")
 
 
 def process_row(row, sigfigs=2):
