@@ -182,10 +182,22 @@ class Photometry:
 
     def get_intensity(self, theta, phi):
         """
-        determine arbitrary intensity value anywhere on unit sphere
+        Determine arbitrary intensity value anywhere on the photometric solid.
 
-        theta: arraylike of vertical angle value of interest
-        phi: arraylike of horizontal/azimuthal angle value of interest
+        For Type C: theta is 0-180 (nadir to zenith), phi is 0-360 (azimuth)
+        For Type B/A: theta is -90 to 90 (vertical), phi is -90 to 90 (horizontal)
+
+        Parameters
+        ----------
+        theta : array-like
+            Vertical angle(s) of interest
+        phi : array-like
+            Horizontal/azimuthal angle(s) of interest
+
+        Returns
+        -------
+        float or ndarray
+            Interpolated intensity value(s)
         """
 
         thetamap = self.thetas
@@ -197,12 +209,21 @@ class Photometry:
         except ValueError as e:
             raise ValueError("theta and phi shapes are not broadcast-compatible") from e
 
-        # Range checks for theta and phi
-        if np.any(theta < 0) or np.any(theta > 180):
-            raise ValueError("Theta values must be between 0 and 180 degrees")
         if theta.shape != phi.shape:
             raise ValueError("theta and phi must be of same length")
-        phi = np.mod(phi, 360)  # Normalize phi values
+
+        # Range checks depend on photometric type
+        theta_min, theta_max = thetamap[0], thetamap[-1]
+        phi_min, phi_max = phimap[0], phimap[-1]
+
+        if np.any(theta < theta_min) or np.any(theta > theta_max):
+            raise ValueError(
+                f"Theta values must be between {theta_min} and {theta_max} degrees"
+            )
+
+        # Normalize phi for Type C (wraps around 360)
+        if self.photometric_type == PhotometricType.C:
+            phi = np.mod(phi, 360)
 
         # Finding closest indices for phi and theta
         phi_indices = np.searchsorted(phimap, phi, side="left")
@@ -500,12 +521,23 @@ class Photometry:
         )
 
     def _interpolate_angles(self, num_thetas=181, num_phis=361):
-        """return a photometry fully filled out"""
+        """
+        Return a photometry with evenly-spaced interpolated angles.
+
+        For Type C: theta 0-180, phi 0-360
+        For Type B/A: theta -90 to 90, phi -90 to 90
+        """
 
         expanded = self.expanded()
 
-        new_thetas = np.linspace(0, 180, num_thetas)
-        new_phis = np.linspace(0, 360, num_phis)
+        # Use appropriate ranges based on photometric type
+        if self.photometric_type == PhotometricType.C:
+            new_thetas = np.linspace(0, 180, num_thetas)
+            new_phis = np.linspace(0, 360, num_phis)
+        else:
+            # Type A and Type B use -90 to 90 for both angles
+            new_thetas = np.linspace(-90, 90, num_thetas)
+            new_phis = np.linspace(-90, 90, num_phis)
 
         tgrid, pgrid = np.meshgrid(new_thetas, new_phis)
         tflat, pflat = tgrid.flatten(), pgrid.flatten()

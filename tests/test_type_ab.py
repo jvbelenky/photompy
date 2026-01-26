@@ -220,3 +220,87 @@ class TestTypeBManual:
         assert expanded.thetas[-1] == 90
         assert expanded.phis[0] == -90
         assert expanded.phis[-1] == 90
+
+
+class TestTypeBInterpolation:
+    """Tests for Type B interpolation."""
+
+    def test_interpolate_type_b_symmetric(self, sample_path):
+        """Type B interpolation should use -90 to 90 range."""
+        ies = IESFile.read(sample_path / "type_b_symmetric.ies")
+        interp = ies.photometry.interpolated(num_thetas=91, num_phis=91)
+
+        # Should use Type B ranges
+        assert interp.thetas[0] == -90
+        assert interp.thetas[-1] == 90
+        assert interp.phis[0] == -90
+        assert interp.phis[-1] == 90
+
+    def test_interpolate_type_b_preserves_type(self, sample_path):
+        """Interpolated Type B should remain Type B."""
+        ies = IESFile.read(sample_path / "type_b_symmetric.ies")
+        interp = ies.photometry.interpolated(num_thetas=91, num_phis=91)
+        assert interp.photometric_type == PhotometricType.B
+
+    def test_interpolate_type_b_center_value(self, sample_path):
+        """Center value should be preserved after interpolation."""
+        ies = IESFile.read(sample_path / "type_b_symmetric.ies")
+        original_center = ies.photometry.get_intensity(0, 0)
+
+        interp = ies.photometry.interpolated(num_thetas=91, num_phis=91)
+        interp_center = interp.get_intensity(0, 0)
+
+        assert np.isclose(original_center, interp_center, rtol=0.01)
+
+
+class TestTypeBGetIntensity:
+    """Tests for Type B get_intensity with negative angles."""
+
+    def test_get_intensity_negative_theta(self, sample_path):
+        """Should handle negative theta for expanded Type B."""
+        ies = IESFile.read(sample_path / "type_b_symmetric.ies")
+        expanded = ies.photometry.expanded()
+
+        # Should work with negative theta
+        intensity = expanded.get_intensity(theta=-45, phi=0)
+        assert intensity > 0
+
+    def test_get_intensity_negative_phi(self, sample_path):
+        """Should handle negative phi for expanded Type B."""
+        ies = IESFile.read(sample_path / "type_b_symmetric.ies")
+        expanded = ies.photometry.expanded()
+
+        # Should work with negative phi
+        intensity = expanded.get_intensity(theta=0, phi=-45)
+        assert intensity > 0
+
+    def test_get_intensity_symmetry(self, sample_path):
+        """Symmetric expansion should mirror values correctly."""
+        ies = IESFile.read(sample_path / "type_b_symmetric.ies")
+        expanded = ies.photometry.expanded()
+
+        # Due to quad symmetry mirroring, values at mirrored H angles should match
+        # when V angle is the same (positive V)
+        i1 = expanded.get_intensity(theta=45, phi=45)
+        i2 = expanded.get_intensity(theta=45, phi=-45)
+        assert np.isclose(i1, i2)
+
+        # And for negative V angle
+        i3 = expanded.get_intensity(theta=-45, phi=45)
+        i4 = expanded.get_intensity(theta=-45, phi=-45)
+        assert np.isclose(i3, i4)
+
+
+class TestTypeAInterpolation:
+    """Tests for Type A interpolation."""
+
+    def test_interpolate_type_a(self, sample_path):
+        """Type A interpolation should use -90 to 90 range."""
+        ies = IESFile.read(sample_path / "type_a_symmetric.ies")
+        interp = ies.photometry.interpolated(num_thetas=91, num_phis=91)
+
+        assert interp.thetas[0] == -90
+        assert interp.thetas[-1] == 90
+        assert interp.phis[0] == -90
+        assert interp.phis[-1] == 90
+        assert interp.photometric_type == PhotometricType.A

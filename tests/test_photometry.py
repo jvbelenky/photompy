@@ -196,3 +196,172 @@ class TestDivisionByZeroProtection:
         )
         val = phot.get_intensity(45, 0)
         assert np.isfinite(val)
+
+
+class TestTotalOpticalPower:
+    """Tests for total optical power calculation."""
+
+    def test_total_method(self, simple_photometry):
+        """total() should return same as total_optical_power()."""
+        total = simple_photometry.total()
+        top = simple_photometry.total_optical_power()
+        assert total == top
+
+    def test_total_positive(self, simple_photometry):
+        """Total optical power should be positive for non-zero values."""
+        total = simple_photometry.total()
+        assert total > 0
+
+    def test_total_zero_values(self):
+        """Zero values should give zero total."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.zeros((2, 3)),
+            photometric_type=PhotometricType.C
+        )
+        assert phot.total() == 0
+
+
+class TestFingerprint:
+    """Tests for photometry fingerprinting."""
+
+    def test_fingerprint_returns_bytes(self, simple_photometry):
+        """Fingerprint should return bytes."""
+        fp = simple_photometry.to_fingerprint()
+        assert isinstance(fp, bytes)
+        assert len(fp) == 20  # SHA1 produces 20 bytes
+
+    def test_same_data_same_fingerprint(self):
+        """Identical photometry should have same fingerprint."""
+        phot1 = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        phot2 = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        assert phot1.to_fingerprint() == phot2.to_fingerprint()
+
+    def test_different_data_different_fingerprint(self):
+        """Different photometry should have different fingerprint."""
+        phot1 = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        phot2 = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 21], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        assert phot1.to_fingerprint() != phot2.to_fingerprint()
+
+
+class TestCoords:
+    """Tests for coordinate generation."""
+
+    def test_coords_cached(self, simple_photometry):
+        """coords should be cached."""
+        _ = simple_photometry.expanded()  # Prime expansion cache
+        c1 = simple_photometry.coords
+        c2 = simple_photometry.coords
+        assert c1 is c2
+
+    def test_coords_shape(self, simple_photometry):
+        """coords should have correct shape."""
+        exp = simple_photometry.expanded()
+        coords = simple_photometry.coords
+        n_points = len(exp.thetas) * len(exp.phis)
+        assert coords.shape == (n_points, 3)
+
+    def test_photometric_coords_cached(self, simple_photometry):
+        """photometric_coords should be cached."""
+        _ = simple_photometry.expanded()
+        pc1 = simple_photometry.photometric_coords
+        pc2 = simple_photometry.photometric_coords
+        assert pc1 is pc2
+
+
+class TestScalingWithCache:
+    """Tests for scaling when cache has expanded photometry."""
+
+    def test_scale_updates_cached_expanded(self, simple_photometry):
+        """Scaling should update cached expanded photometry."""
+        _ = simple_photometry.expanded()
+        original_max = simple_photometry.max()
+        simple_photometry.scale(2.0)
+
+        # Main values should be scaled
+        assert np.isclose(simple_photometry.max(), original_max * 2)
+
+        # Cached expanded should also be scaled
+        exp = simple_photometry.expanded()
+        assert np.isclose(exp.max(), original_max * 2)
+
+    def test_scale_to_max_updates_cache(self, simple_photometry):
+        """scale_to_max should update cached photometry."""
+        _ = simple_photometry.expanded()
+        simple_photometry.scale_to_max(500)
+        assert np.isclose(simple_photometry.max(), 500)
+
+    def test_scale_to_total_updates_cache(self, simple_photometry):
+        """scale_to_total should update cached photometry."""
+        _ = simple_photometry.expanded()
+        simple_photometry.scale_to_total(1000)
+        assert np.isclose(simple_photometry.total(), 1000, rtol=0.01)
+
+    def test_scale_to_center_updates_cache(self, simple_photometry):
+        """scale_to_center should update cached photometry."""
+        _ = simple_photometry.expanded()
+        simple_photometry.scale_to_center(500)
+        assert np.isclose(simple_photometry.center(), 500)
+
+
+class TestPhotometryEquality:
+    """Additional equality tests."""
+
+    def test_different_photometric_type_not_equal(self):
+        """Different photometric types should not be equal."""
+        phot_c = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 45, 90]),
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.C
+        )
+        phot_b = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 45, 90]),
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.B
+        )
+        assert phot_c != phot_b
+
+    def test_different_symmetry_not_equal(self):
+        """Different symmetries should not be equal."""
+        phot_axial = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0]),  # Single phi = axial
+            values=np.array([[100, 70, 20]]),
+            photometric_type=PhotometricType.C
+        )
+        phot_quad = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 45, 90]),  # 0-90 = quad
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.C
+        )
+        assert phot_axial != phot_quad
+
+    def test_not_equal_to_non_photometry(self, simple_photometry):
+        """Photometry should not equal non-Photometry objects."""
+        assert simple_photometry != "not a photometry"
+        assert simple_photometry != 42
+        assert simple_photometry != None
