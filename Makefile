@@ -47,8 +47,7 @@ clean:
 	@find . -type f -name "*.kate-swp" -delete
 	@echo "Done"
 
-## Try the example usage
-test: 
-	$(PYTHON_INTERPRETER) ./tests/example_usage.py "tests/ies_files/B1 module.ies"
-
+test:
+	$(PYTHON_INTERPRETER) -m pytest tests/ -v
+	
 all: install test clean
