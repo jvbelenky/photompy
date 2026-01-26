@@ -180,7 +180,7 @@ class IESFile:
             return self.photometry.expanded()
         elif which.lower() == "interp":
             return self.photometry.interpolated(*interp_args)
-        raise ValueError(f"Unknown photometry mode {which}", stacklevel=3)
+        raise ValueError(f"Unknown photometry mode {which}")
 
     @staticmethod
     def _check_filename(origin, strict=True):

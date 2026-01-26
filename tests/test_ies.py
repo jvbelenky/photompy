@@ -302,3 +302,110 @@ class TestIESFileAttributePassthrough:
         ies = load_ies("sample_A.ies")
         with pytest.raises(AttributeError):
             _ = ies.nonexistent_attribute
+
+
+class TestIESFilePlot:
+    """Tests for IESFile.plot method."""
+
+    @pytest.mark.skip(reason="Slow due to matplotlib startup")
+    def test_plot_polar(self, load_ies):
+        """plot with polar type should work."""
+        import matplotlib.pyplot as plt
+        ies_file = load_ies("sample_A.ies")
+        ies_file.plot(plot_type="polar")
+        plt.close('all')
+
+    @pytest.mark.skip(reason="Slow due to matplotlib startup")
+    def test_plot_cartesian(self, load_ies):
+        """plot with cartesian type should work."""
+        import matplotlib.pyplot as plt
+        ies_file = load_ies("sample_A.ies")
+        ies_file.plot(plot_type="cartesian")
+        plt.close('all')
+
+    def test_plot_invalid_type_raises(self, load_ies):
+        """plot with invalid type should raise ValueError."""
+        ies_file = load_ies("sample_A.ies")
+        with pytest.raises(ValueError, match="unrecognized plot type"):
+            ies_file.plot(plot_type="invalid")
+
+
+class TestIESFileGetPhotometry:
+    """Tests for IESFile._get_photometry method."""
+
+    def test_get_orig_photometry(self, load_ies):
+        """_get_photometry with 'orig' returns original photometry."""
+        ies_file = load_ies("sample_A.ies")
+        phot = ies_file._get_photometry("orig")
+        assert phot is ies_file.photometry
+
+    def test_get_full_photometry(self, load_ies):
+        """_get_photometry with 'full' returns expanded photometry."""
+        ies_file = load_ies("sample_A.ies")
+        phot = ies_file._get_photometry("full")
+        # Should be expanded
+        assert len(phot.phis) >= len(ies_file.photometry.phis)
+
+    def test_get_interp_photometry(self, load_ies):
+        """_get_photometry with 'interp' returns interpolated photometry."""
+        ies_file = load_ies("sample_A.ies")
+        phot = ies_file._get_photometry("interp", (91, 181))
+        assert len(phot.thetas) == 91
+        assert len(phot.phis) == 181
+
+    def test_get_invalid_mode_raises(self, load_ies):
+        """_get_photometry with invalid mode raises ValueError."""
+        ies_file = load_ies("sample_A.ies")
+        with pytest.raises(ValueError, match="Unknown photometry mode"):
+            ies_file._get_photometry("invalid")
+
+
+class TestIESFileCheckFilename:
+    """Tests for IESFile._check_filename method."""
+
+    def test_valid_ies_extension(self, tmp_path):
+        """Should not raise for .ies extension."""
+        path = tmp_path / "test.ies"
+        # Should not raise
+        IESFile._check_filename(path)
+
+    def test_invalid_extension_strict(self, tmp_path):
+        """Should raise for non-.ies extension with strict=True."""
+        from photompy.exceptions import IESPathError
+        path = tmp_path / "test.txt"
+        with pytest.raises(IESPathError, match="Unexpected extension"):
+            IESFile._check_filename(path, strict=True)
+
+    def test_invalid_extension_not_strict(self, tmp_path):
+        """Should warn for non-.ies extension with strict=False."""
+        path = tmp_path / "test.txt"
+        with pytest.warns(UserWarning, match="Unexpected extension"):
+            IESFile._check_filename(path, strict=False)
+
+
+class TestIESFileSplitString:
+    """Tests for IESFile._split_string method."""
+
+    def test_tilt_filename(self):
+        """Should parse TILT=<filename> format."""
+        ies_string = """IES:LM-63-2019
+[TEST] Test
+TILT=mytilt.dat
+1 100 1.0 3 2 1 1 0 0 0 1 1 10
+0 45 90
+0 180
+100 80 50 100 80 50"""
+        version, header, tilt, numeric, blocks = IESFile._split_string(ies_string)
+        assert tilt == "mytilt.dat"
+
+    def test_missing_tilt_raises(self):
+        """Should raise IESHeaderError if TILT line is missing."""
+        from photompy.exceptions import IESHeaderError
+        ies_string = """IES:LM-63-2019
+[TEST] Test
+1 100 1.0 3 2 1 1 0 0 0 1 1 10
+0 45 90
+0 180
+100 80 50 100 80 50"""
+        with pytest.raises(IESHeaderError, match="TILT= line missing"):
+            IESFile._split_string(ies_string)

@@ -365,3 +365,213 @@ class TestPhotometryEquality:
         assert simple_photometry != "not a photometry"
         assert simple_photometry != 42
         assert simple_photometry != None
+
+
+class TestGetIntensityEdgeCases:
+    """Additional tests for get_intensity edge cases."""
+
+    def test_broadcast_incompatible_raises(self, simple_photometry):
+        """Broadcast-incompatible shapes should raise ValueError."""
+        thetas = np.array([0, 45, 90])  # length 3
+        phis = np.array([0, 90])  # length 2
+        with pytest.raises(ValueError, match="broadcast-compatible"):
+            simple_photometry.get_intensity(thetas, phis)
+
+    def test_single_value_input(self, simple_photometry):
+        """Should handle single value inputs."""
+        val = simple_photometry.get_intensity(0, 0)
+        assert np.isfinite(val)
+
+    def test_scalar_inputs(self, simple_photometry):
+        """Should handle Python scalar inputs."""
+        val = simple_photometry.get_intensity(30, 90)
+        assert np.isfinite(val)
+
+
+class TestTypeBExpansionEdgeCases:
+    """Tests for Type B expansion edge cases."""
+
+    def test_type_b_half_symmetry(self):
+        """Type B HALF symmetry (-90 to 90) should not expand."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([-90, -45, 0, 45, 90]),  # Full -90 to 90
+            values=np.ones((5, 3)) * 100,
+            photometric_type=PhotometricType.B
+        )
+        assert phot.symmetry == LampSymmetry.HALF
+        exp = phot.expanded()
+        # HALF symmetry doesn't expand phis
+        np.testing.assert_array_equal(exp.phis, phot.phis)
+
+    def test_type_b_axial_symmetry(self):
+        """Type B AXIAL symmetry (single H plane) should expand."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0]),  # Single plane
+            values=np.array([[100, 70, 20]]),
+            photometric_type=PhotometricType.B
+        )
+        assert phot.symmetry == LampSymmetry.AXIAL
+        exp = phot.expanded()
+        # AXIAL expands to full range
+        assert len(exp.phis) == 181
+
+    def test_type_b_unknown_symmetry_raises(self):
+        """Type B with unusual phi range should raise NotImplementedError."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([10, 20, 30]),  # Unusual range
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.B
+        )
+        assert phot.symmetry == LampSymmetry.UNKNOWN
+        with pytest.raises(NotImplementedError, match="not supported for Type B"):
+            phot.expanded()
+
+
+class TestTypeAExpansionEdgeCases:
+    """Tests for Type A expansion edge cases."""
+
+    def test_type_a_half_symmetry(self):
+        """Type A HALF symmetry (-90 to 90) should not expand."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([-90, -45, 0, 45, 90]),  # Full -90 to 90
+            values=np.ones((5, 3)) * 100,
+            photometric_type=PhotometricType.A
+        )
+        assert phot.symmetry == LampSymmetry.HALF
+        exp = phot.expanded()
+        np.testing.assert_array_equal(exp.phis, phot.phis)
+
+    def test_type_a_axial_symmetry(self):
+        """Type A AXIAL symmetry should expand."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0]),
+            values=np.array([[100, 70, 20]]),
+            photometric_type=PhotometricType.A
+        )
+        assert phot.symmetry == LampSymmetry.AXIAL
+        exp = phot.expanded()
+        assert len(exp.phis) == 181
+
+    def test_type_a_unknown_symmetry_raises(self):
+        """Type A with unusual phi range should raise NotImplementedError."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([10, 20, 30]),  # Unusual range
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.A
+        )
+        assert phot.symmetry == LampSymmetry.UNKNOWN
+        with pytest.raises(NotImplementedError, match="not supported for Type A"):
+            phot.expanded()
+
+
+class TestTypeCExpansionEdgeCases:
+    """Tests for Type C expansion edge cases."""
+
+    def test_type_c_unknown_symmetry_raises(self):
+        """Type C with unusual phi range should raise NotImplementedError."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 45, 120]),  # Unusual range (not 90, 180, or 360)
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.C
+        )
+        assert phot.symmetry == LampSymmetry.UNKNOWN
+        with pytest.raises(NotImplementedError, match="not supported for Type C"):
+            phot.expanded()
+
+
+class TestSymmetryInferenceExtended:
+    """Extended symmetry inference tests."""
+
+    def test_type_b_unknown_symmetry(self):
+        """Type B with unusual phis should be UNKNOWN."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([10, 20, 30]),
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.B
+        )
+        assert phot.symmetry == LampSymmetry.UNKNOWN
+
+    def test_type_a_unknown_symmetry(self):
+        """Type A with unusual phis should be UNKNOWN."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([10, 20, 30]),
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.A
+        )
+        assert phot.symmetry == LampSymmetry.UNKNOWN
+
+    def test_type_c_unknown_symmetry(self):
+        """Type C with unusual phis should be UNKNOWN."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 45, 120]),  # Not 90, 180, 270, or 360
+            values=np.ones((3, 3)) * 100,
+            photometric_type=PhotometricType.C
+        )
+        assert phot.symmetry == LampSymmetry.UNKNOWN
+
+
+class TestPlotMethods:
+    """Tests for plot method existence (not visual output)."""
+
+    @pytest.mark.skip(reason="Slow due to matplotlib startup")
+    def test_plot_polar_returns_value(self, simple_photometry):
+        """plot_polar should return something (figure or None)."""
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        result = simple_photometry.plot_polar()
+        plt.close('all')
+        # Just check it doesn't raise
+
+    @pytest.mark.skip(reason="Slow due to matplotlib startup")
+    def test_plot_cartesian_returns_value(self, simple_photometry):
+        """plot_cartesian should return something (figure or None)."""
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+        result = simple_photometry.plot_cartesian()
+        plt.close('all')
+        # Just check it doesn't raise
+
+
+class TestToCartesian:
+    """Tests for to_cartesian static method."""
+
+    def test_origin(self):
+        """theta=0 should give z-axis regardless of phi."""
+        x, y, z = Photometry.to_cartesian(0, 0, 1)
+        assert np.isclose(x, 0)
+        assert np.isclose(y, 0)
+        assert np.isclose(z, 1)
+
+    def test_theta_90_phi_0(self):
+        """theta=90, phi=0 should be on y-axis."""
+        x, y, z = Photometry.to_cartesian(90, 0, 1)
+        assert np.isclose(x, 0, atol=1e-10)
+        assert np.isclose(y, 1)
+        assert np.isclose(z, 0, atol=1e-10)
+
+    def test_theta_90_phi_90(self):
+        """theta=90, phi=90 should be on x-axis."""
+        x, y, z = Photometry.to_cartesian(90, 90, 1)
+        assert np.isclose(x, 1)
+        assert np.isclose(y, 0, atol=1e-10)
+        assert np.isclose(z, 0, atol=1e-10)
+
+    def test_array_input(self):
+        """Should handle array inputs."""
+        thetas = np.array([0, 90, 90])
+        phis = np.array([0, 0, 90])
+        rs = np.array([1, 1, 1])
+        x, y, z = Photometry.to_cartesian(thetas, phis, rs)
+        assert x.shape == (3,)
+        assert y.shape == (3,)
+        assert z.shape == (3,)

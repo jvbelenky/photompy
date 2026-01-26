@@ -141,3 +141,47 @@ class TestLampArea:
         if area_m > 0:
             ratio = area_ft / area_m
             assert np.isclose(ratio, 1 / (0.3048 ** 2), rtol=0.01)
+
+
+class TestLampAreaUnitsType:
+    """Tests for lamp_area with different unit types."""
+
+    def test_file_with_meters_units(self, tmp_path, sample_path):
+        """Test file with units_type=2 (meters)."""
+        # Read a sample file and change units_type to 2
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            from photompy.read import read_ies_data
+            from photompy.write import write_ies_data
+            lampdict = read_ies_data(sample_path / "sample_A.ies")
+
+        # Change units_type to meters (2)
+        lampdict["units_type"] = 2
+
+        # Write to new file
+        outfile = tmp_path / "meters_units.ies"
+        write_ies_data(lampdict, filename=outfile)
+
+        # Now test lamp_area with this file
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            area_m = lamp_area(outfile, units="meters")
+            area_ft = lamp_area(outfile, units="feet")
+
+        # Should get valid results
+        assert area_m >= 0
+        assert area_ft >= 0
+
+
+class TestLoadInterpdict:
+    """Tests for _load_interpdict function."""
+
+    def test_loads_existing_interp_vals(self, sample_path):
+        """Should return interp_vals from already interpolated dict."""
+        from photompy.calculate import _load_interpdict
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            valdict = _load_interpdict(sample_path / "sample_A.ies", 91, 181)
+        assert "thetas" in valdict
+        assert "phis" in valdict
+        assert "values" in valdict

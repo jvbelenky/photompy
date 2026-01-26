@@ -171,3 +171,195 @@ class TestReadIesData:
     def test_deprecation_warning(self, sample_path):
         with pytest.warns(DeprecationWarning, match="read_ies_data is deprecated"):
             read_ies_data(sample_path / "sample_A.ies")
+
+
+class TestLoadBytesExtended:
+    """Additional load_bytes tests for coverage."""
+
+    def test_load_from_bytearray(self):
+        """Should handle bytearray input."""
+        data = bytearray(b"IESNA:LM-63-2002\nTILT=NONE\n")
+        raw, origin = load_bytes(data)
+        assert isinstance(raw, bytes)
+        assert origin is None
+
+    def test_load_from_string_with_tilt(self):
+        """Should treat string containing TILT= as in-memory IES data."""
+        ies_string = "IESNA:LM-63-2002\nTILT=NONE\n1 100 1 3 1 1 1 0 0 0 1 1 10\n0 45 90\n0\n100 80 50"
+        raw, origin = load_bytes(ies_string)
+        assert isinstance(raw, bytes)
+        assert origin is None
+        assert b"TILT=NONE" in raw
+
+    def test_load_invalid_type_raises(self):
+        """Should raise TypeError for invalid input."""
+        with pytest.raises(TypeError, match="Cannot interpret"):
+            load_bytes(12345)
+
+    def test_load_from_file_handle(self, sample_path):
+        """Should handle file-like objects."""
+        with open(sample_path / "sample_A.ies", "r") as f:
+            raw, origin = load_bytes(f)
+        assert isinstance(raw, bytes)
+        assert origin is None
+
+
+class TestGetLampType:
+    """Tests for get_lamp_type function."""
+    from photompy.read import get_lamp_type
+
+    def test_type_c_axial(self):
+        """Type C with single phi (axial symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0])
+        result = get_lamp_type(phis, 1)
+        assert result == "C0"
+
+    def test_type_c_quad(self):
+        """Type C with phis ending at 90 (quad symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 45, 90])
+        result = get_lamp_type(phis, 1)
+        assert result == "C90"
+
+    def test_type_c_half(self):
+        """Type C with phis ending at 180 (half symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 90, 180])
+        result = get_lamp_type(phis, 1)
+        assert result == "C180"
+
+    def test_type_c_full(self):
+        """Type C with phis ending at 360 (full)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 90, 180, 270, 360])
+        result = get_lamp_type(phis, 1)
+        assert result == "C360"
+
+    def test_type_c_bad_first_phi_warns(self):
+        """Type C with non-zero first phi should warn."""
+        from photompy.read import get_lamp_type
+        phis = np.array([10, 90, 180])
+        with pytest.warns(UserWarning, match="first horizontal"):
+            get_lamp_type(phis, 1)
+
+    def test_type_c_bad_last_phi_warns(self):
+        """Type C with invalid last phi should warn."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 45, 120])  # 120 is not valid
+        with pytest.warns(UserWarning, match="last horizontal"):
+            get_lamp_type(phis, 1)
+
+    def test_type_b_quad(self):
+        """Type B with 0 to 90 (quad symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 45, 90])
+        with pytest.warns(UserWarning, match="not currently supported"):
+            result = get_lamp_type(phis, 2)
+        assert result == "B0"
+
+    def test_type_b_half(self):
+        """Type B with -90 to 90 (half symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([-90, 0, 90])
+        with pytest.warns(UserWarning, match="not currently supported"):
+            result = get_lamp_type(phis, 2)
+        assert result == "B-90"
+
+    def test_type_b_bad_last_phi_warns(self):
+        """Type B with last phi not 90 should warn."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 45, 60])
+        with pytest.warns(UserWarning, match="last horizontal"):
+            get_lamp_type(phis, 2)
+
+    def test_type_b_bad_first_phi_warns(self):
+        """Type B with first phi not -90 or 0 should warn."""
+        from photompy.read import get_lamp_type
+        phis = np.array([-45, 0, 90])
+        with pytest.warns(UserWarning, match="first horizontal"):
+            get_lamp_type(phis, 2)
+
+    def test_type_a_quad(self):
+        """Type A with 0 to 90 (quad symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 45, 90])
+        with pytest.warns(UserWarning, match="not currently supported"):
+            result = get_lamp_type(phis, 3)
+        assert result == "A0"
+
+    def test_type_a_half(self):
+        """Type A with -90 to 90 (half symmetry)."""
+        from photompy.read import get_lamp_type
+        phis = np.array([-90, 0, 90])
+        with pytest.warns(UserWarning, match="not currently supported"):
+            result = get_lamp_type(phis, 3)
+        assert result == "A-90"
+
+    def test_unknown_photometry_warns(self):
+        """Unknown photometry type should warn."""
+        from photompy.read import get_lamp_type
+        phis = np.array([0, 90])
+        with pytest.warns(UserWarning, match="could not be determined"):
+            result = get_lamp_type(phis, 99)
+        assert result == "?"
+
+
+class TestFormatAngles:
+    """Tests for _format_angles function."""
+    from photompy.read import _format_angles
+
+    def test_c90_symmetry(self, sample_path):
+        """Test C90 (quad) symmetry expansion."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            lampdict = read_ies_data(sample_path / "sample_B.ies", interpolate=False)
+
+        # sample_B may have different symmetry; let's test manually
+        if lampdict["photometry"] == "C90":
+            full = lampdict["full_vals"]
+            # C90 expands to 4 quadrants
+            assert len(full["phis"]) > len(lampdict["original_vals"]["phis"])
+
+    def test_theta_extension_to_180(self, sample_path):
+        """Test that thetas ending at 90 get extended to 180."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            lampdict = read_ies_data(sample_path / "sample_A.ies", interpolate=False)
+
+        orig_thetas = lampdict["original_vals"]["thetas"]
+        full_thetas = lampdict["full_vals"]["thetas"]
+
+        if orig_thetas[-1] == 90:
+            # Should extend to 180
+            assert full_thetas[-1] >= 180
+
+
+class TestProcessKeywordsExtended:
+    """Additional process_keywords tests."""
+
+    def test_more_lines_combined(self):
+        """MORE lines should be combined with previous keyword."""
+        header = [
+            "[LUMINAIRE] Long description",
+            "[MORE] that continues here",
+            "[MORE] and here too",
+            "[TEST] Another value",
+        ]
+        result = process_keywords(header)
+        assert "LUMINAIRE" in result
+        assert "that continues here" in result["LUMINAIRE"]
+        assert "and here too" in result["LUMINAIRE"]
+        assert result["TEST"] == "Another value"
+
+    def test_duplicate_keys_renamed(self):
+        """Duplicate keys (except MORE) should get numbered."""
+        header = [
+            "[CUSTOM] First",
+            "[CUSTOM] Second",
+            "[CUSTOM] Third",
+        ]
+        result = process_keywords(header)
+        assert "CUSTOM-1" in result
+        assert "CUSTOM-2" in result
+        assert "CUSTOM-3" in result
