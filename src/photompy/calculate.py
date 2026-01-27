@@ -1,8 +1,7 @@
 import numpy as np
 import pathlib
 import os
-from .interpolate import interpolate_values
-from .read import read_ies_data, verify_valdict
+from .read import verify_valdict
 
 
 def total_optical_power(data, num_thetas=181, num_phis=361, distance=1):
@@ -30,16 +29,16 @@ def total_optical_power(data, num_thetas=181, num_phis=361, distance=1):
 
 def _load_interpdict(filename, num_thetas, num_phis):
     """
-    load a dictionary with interpolated values, and
-    interpolate if it does not exist
+    load a dictionary with interpolated values
     """
-    lampdict = read_ies_data(filename)
-    try:
-        lampdict["interp_vals"]
-    except KeyError:
-        interpolate_values(lampdict, num_thetas=num_thetas, num_phis=num_phis)
-
-    return lampdict["interp_vals"]
+    from .ies import IESFile  # lazy import to avoid circular dependency
+    ies_file = IESFile.read(filename)
+    interp_phot = ies_file.photometry.interpolated(num_thetas, num_phis)
+    return {
+        "thetas": interp_phot.thetas,
+        "phis": interp_phot.phis,
+        "values": interp_phot.values,
+    }
 
 
 def _compute_total_power(valdict):
@@ -72,19 +71,21 @@ def lamp_area(filename, units="meters", verbose=False):
         msg = "Argument units must be either `meters`,`feet`, or `inches"
         raise KeyError(msg)
 
-    lampdict = read_ies_data(filename)
-    if lampdict["units_type"] == 1:
+    from .ies import IESFile  # lazy import to avoid circular dependency
+    ies_file = IESFile.read(filename)
+    header = ies_file.header
+    if header.units == 1:
         # feet
-        width_ft = lampdict["width"]
-        length_ft = lampdict["length"]
-        width_m = lampdict["width"] * 0.3048
-        length_m = lampdict["length"] * 0.3048
-    elif lampdict["units_type"] == 2:
+        width_ft = header.width
+        length_ft = header.length
+        width_m = header.width * 0.3048
+        length_m = header.length * 0.3048
+    elif header.units == 2:
         # meters
-        width_m = lampdict["width"]
-        length_m = lampdict["length"]
-        width_ft = lampdict["width"] / 0.3048
-        length_ft = lampdict["length"] / 0.3048
+        width_m = header.width
+        length_m = header.length
+        width_ft = header.width / 0.3048
+        length_ft = header.length / 0.3048
 
     width_in, length_in = width_ft * 12, length_ft * 12
 

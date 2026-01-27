@@ -20,93 +20,110 @@ Alternatively, clone the repo and build locally:
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### Read files
+### Modern API (Recommended)
 
-Most of the core functionality of the library is in `read_ies_data` :
+The recommended way to work with IES files is through the `IESFile` class:
 
+```python
+from photompy import IESFile
 
-	from photompy import *
-	lampdict = read_ies_data(filename)
-	
+# Read an IES file
+ies = IESFile.read("lamp.ies")
 
-By default, an ies file will be read in its original form, the angle values formatted in accordance with its photometry type, and interpolated to achieve a value for vertical angles (0,180) and horizontal angles (0,360). They are stored in dictionaries with keys `phis`,`thetas`, and `values`. They can be accessed like so:
+# Access photometry data
+print(ies.photometry.thetas)  # vertical angles
+print(ies.photometry.phis)    # horizontal angles
+print(ies.photometry.values)  # candela values
 
-	original_dict = lampdict["original_vals"]
-	full_dict = lampdict["full_vals"]
-	interp_dict = lampdict["interp_vals"]
+# Calculate total optical power
+power = ies.photometry.total_optical_power()
 
-Extending the angles and interpolation between them can be disabled if desired:
+# Get intensity at specific angles
+intensity = ies.photometry.get_intensity(theta=45, phi=0)
 
-	lampdict = read_ies_data(filename, extend=False, interpolate=False)
-	
+# Plot the photometry
+fig, ax = ies.plot(plot_type="polar")
+fig, ax = ies.plot(plot_type="cartesian", elev=45, azim=30)
+
+# Scale values
+ies.scale_to_max(5000)           # Scale to max candela value
+ies.scale_to_total(1000)         # Scale to total power
+ies.scale_to_center(2500)        # Scale to center intensity
+ies.scale(2.0)                   # Scale by factor
+
+# Write to file
+ies.write("output.ies")                    # Write original angles
+ies.write("output.ies", which="full")      # Write expanded angles
+ies.write("output.ies", which="interp")    # Write interpolated angles
+
+# Access header information
+print(ies.header.units)           # FEET or METERS
+print(ies.header.width)           # luminous width
+print(ies.header.length)          # luminous length
+print(ies.header.input_watts)     # input watts
+```
+
+### Legacy API (Deprecated)
+
+The following functions are still available but deprecated. They will emit deprecation warnings:
+
+```python
+from photompy import read_ies_data, write_ies_data, total_optical_power, plot_ies
+
+# These still work but will warn
+lampdict = read_ies_data(filename)
+power = total_optical_power(filename)
+fig, ax = plot_ies(filename)
+```
+
+See `docs/migration.md` for a complete guide on migrating from the legacy API.
+
+### Working with Photometry Directly
+
+For advanced use cases, you can work with the `Photometry` class directly:
+
+```python
+from photompy import IESFile
+
+ies = IESFile.read("lamp.ies")
+phot = ies.photometry
+
+# Get expanded (mirrored) photometry
+expanded = phot.expanded()
+
+# Get interpolated photometry
+interpolated = phot.interpolated(num_thetas=361, num_phis=721)
+```
+
 ### Simple calculations
 
-If finer interpolation is desired, the `interp_vals` dictionary can be overwritten:
-	
-	interpolate_values(lampdict, overwrite=True, num_thetas=361, num_phis=721)
-	finer_interp_dict = lampdict["interp_vals"]
+```python
+from photompy import total_optical_power, lamp_area
 
-Simple calculations are performed at the filename level:
-
-	power = total_optical_power(filename)
-	luminous_area = lamp_area(filename, units="meters")
-
-### Visualization
-
-Some plotting functions are provided for quickly visualizing a file. The default is a standard polar plot:
-
-	plot_ies(filename)
-	
-An alternative cartesian plotting function is provided and maybe be useful for those less familiar with polar plots to quickly gut-check any changes made to a file:
-
-	plot_ies(filename, type="cartesian", "original")
-	plot_ies(filename, type="cartesian", "full", elev=90, azim=45)
-	plot_ies(filename, type="cartesian", "interpolated", title="Interpolated", show_cbar=True)
-
-
-Any dictionary that has keys `thetas`, `phis`, and `values`, where `values` contains a numpy array of shape `( len(phis), len(thetas) )` can also be quickly plotted with `plot_valdict_cartesian` or `plot_valdict_polar` 
-
-	full_dict = lampdict["full_vals"]
-	new_dict = full_dict.copy()
-	new_dict["values"] = full_dict["values"] * 5
-	fig, ax = plot_valdict_cartesian(new_dict)
-	fig, ax = plot_valdict_polar(new_dict)
+power = total_optical_power(filename)
+luminous_area = lamp_area(filename, units="meters")
+```
 
 ### Writing files
 
-To write a new ies file, you must pass a `lampdict` object and a key pointing to the dictionary where the theta, phi, and candela values are stored. You may want to save the extended or interpolated versions of the original file:
+To scale and write IES files:
 
-    lampdict = read_ies_data(filename)
-    outfile = "full_vals.ies"
-    write_ies_data(outfile, lampdict, valkey="full_vals")
-    outfile = "interp_vals.ies"
-    write_ies_data(outfile, lampdict, valkey="interp_vals")
+```python
+from photompy import scale_lamp_to_max, scale_lamp_to_total
 
-If you wish to save a different array of candela values, you can either manipulate the 3 provided value dictionary, or you must create a new dictionary and add it to the `lampdict` object before writing it to a new file.
+# Scale to specific maximum value
+scale_lamp_to_max(5000, "input.ies", "output.ies")
 
-    # read 
-    lampdict = read_ies_data(filename)
-    interp_dict = lampdict["interp_vals"]
-    
-    # copy and manipulate new dictionary
-    new_dict = interp_dict.copy()
-    new_dict["values"] = interp_dict["values"] * 5
-    
-    # save in lampdict object
-    lampdict["scaled_vals"] = newdict
-    
-    # write new value dictionary 
-    outfile = "scaled_interp_vals.ies"
-    write_ies_data(outfile, lampdict, valkey="scaled_vals")
-
-Note that header data is _not_ automatically updated in the latter case. Verify that all information is correct before writing.
+# Scale to specific total optical power
+scale_lamp_to_total(1000, "input.ies", "output.ies")
+```
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] PhotometricData and AngleData objects (as opposed to lampdict and valdict dictionaries)
+- [x] PhotometricData and AngleData objects (IESFile and Photometry classes)
 - [ ] Generate .ies files from an angular distribution table
-- [ ] Type A and B photometry support
+- [x] Type A and B photometry support
 - [ ] Dialux file (.ldt) support
 - [ ] More extensive write support
 

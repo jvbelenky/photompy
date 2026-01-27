@@ -4,7 +4,6 @@ from pathlib import Path
 import pathlib
 import warnings
 from .interpolate import interpolate_values
-from .read import read_ies_data
 
 
 def plot_ies(
@@ -59,8 +58,21 @@ def plot_ies(
     DATA_TYPE = None
     if isinstance(fdata, (str, pathlib.PosixPath, bytes)):
         if Path(fdata).is_file():
-            DATA_TYPE = "FILE"
-            lampdict = read_ies_data(fdata)
+            # Delegate to modern IESFile.plot() API
+            from .ies import IESFile  # lazy import to avoid circular dependency
+            ies_file = IESFile.read(fdata)
+            which_map = {"interpolated": "interp", "original": "orig", "full": "full"}
+            return ies_file.plot(
+                plot_type=plot_type,
+                which=which_map.get(which.lower(), which),
+                title=title,
+                elev=elev,
+                azim=azim,
+                figsize=figsize,
+                show_cbar=show_cbar,
+                alpha=alpha,
+                cmap=cmap,
+            )
     elif isinstance(fdata, dict):
         lampdict_keys = [
             "source",

@@ -1,5 +1,5 @@
-from .read import verify_valdict, read_ies_data
-from .calculate import total_optical_power
+import copy
+from .read import verify_valdict
 
 
 def scale_lamp_to_total(total_power, ref_lamp, outfile):
@@ -7,17 +7,10 @@ def scale_lamp_to_total(total_power, ref_lamp, outfile):
     create a new ies file based on an existing file,
     with a set total optical power value
     """
-    lampdict = read_ies_data(ref_lamp)
-
-    valdict = lampdict["full_vals"]
-    top = total_optical_power(valdict)
-    factor = total_power / top
-
-    newdict = valdict.copy()
-    newdict["values"] = valdict["values"] * factor
-    lampdict["scaled_vals"] = newdict
-    lampdict["multiplier"] = 1
-    write_ies_data(lampdict, filename=outfile, valkey="scaled_vals")
+    from .ies import IESFile  # lazy import to avoid circular dependency
+    ies_file = copy.deepcopy(IESFile.read(ref_lamp))
+    ies_file.scale_to_total(total_power)
+    ies_file.write(outfile, which="full")
 
 
 def scale_lamp_to_max(max_val, ref_lamp, outfile):
@@ -25,17 +18,10 @@ def scale_lamp_to_max(max_val, ref_lamp, outfile):
     create a new ies file based on an existing file,
     with a set maximum irradiance value
     """
-    lampdict = read_ies_data(ref_lamp)
-
-    valdict = lampdict["full_vals"]
-    prev_max = valdict["values"].max()
-    factor = max_val / prev_max
-
-    newdict = valdict.copy()
-    newdict["values"] = valdict["values"] * factor
-    lampdict["scaled_vals"] = newdict
-    lampdict["multiplier"] = 1
-    write_ies_data(lampdict, filename=outfile, valkey="scaled_vals")
+    from .ies import IESFile  # lazy import to avoid circular dependency
+    ies_file = copy.deepcopy(IESFile.read(ref_lamp))
+    ies_file.scale_to_max(max_val)
+    ies_file.write(outfile, which="full")
 
 
 def process_row(row, sigfigs=2):

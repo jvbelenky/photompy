@@ -39,7 +39,7 @@ def read_ies_data(filedata, extend=True, interpolate=True):
     """
 
     warnings.warn(
-        "read_ies_data is deprecated; use IESFile.from_path() instead",
+        "read_ies_data is deprecated; use IESFile.read() instead",
         DeprecationWarning,
         stacklevel=2,
     )
