@@ -123,6 +123,29 @@ class IESFile:
         self.photometry.scale(scale_val)
         return self
 
+    @property
+    def luminous_opening(self):
+        """
+        Get the luminous opening geometry.
+
+        Returns:
+            LuminousOpening object with shape detection and area/volume calculations
+        """
+        return self.header.luminous_opening
+
+    def lamp_area(self, units: str = "meters") -> float:
+        """
+        Get the luminous opening area.
+
+        Args:
+            units: "meters", "m", "feet", "ft", "inches", "in",
+                   "cm", "centimeters", "mm", "millimeters"
+
+        Returns:
+            Area in the specified units squared
+        """
+        return self.luminous_opening.area_in(units)
+
     def write(
         self,
         filename=None,

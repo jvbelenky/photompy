@@ -230,44 +230,27 @@ def total_optical_power(data, num_thetas=181, num_phis=361, distance=1):
 
 def lamp_area(filename, units="meters", verbose=False):
     """
-    DEPRECATED: Use IESFile header properties instead.
+    DEPRECATED: Use IESFile.lamp_area() instead.
 
     Return lamp area in units of m^2, ft^2 or in^2.
     """
     _deprecation_warning(
         "lamp_area",
-        "ies = IESFile.read(file); area = ies.header.width * ies.header.length"
+        "IESFile.read(file).lamp_area(units)"
     )
 
     if units.lower() not in ["meters", "feet", "inches"]:
         raise KeyError("Argument units must be either `meters`, `feet`, or `inches`")
 
     from .ies import IESFile
+
     ies_file = IESFile.read(filename)
-    header = ies_file.header
-
-    if header.units == 1:  # feet
-        width_ft = header.width
-        length_ft = header.length
-        width_m = header.width * 0.3048
-        length_m = header.length * 0.3048
-    elif header.units == 2:  # meters
-        width_m = header.width
-        length_m = header.length
-        width_ft = header.width / 0.3048
-        length_ft = header.length / 0.3048
-
-    width_in, length_in = width_ft * 12, length_ft * 12
-
-    if units.lower() == "feet":
-        area = width_ft * length_ft
-    elif units.lower() == "meters":
-        area = width_m * length_m
-    elif units.lower() == "inches":
-        area = width_in * length_in
+    area = ies_file.lamp_area(units)
 
     if verbose:
-        print("Area (cm2)", width_m * length_m * 100 * 100)
+        area_m2 = ies_file.lamp_area("meters")
+        print("Area (cm2)", area_m2 * 100 * 100)
+
     return area
 
 

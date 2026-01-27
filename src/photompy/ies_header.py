@@ -188,6 +188,20 @@ class IESHeader:
     def future_use(self):
         return self._v11
 
+    @property
+    def luminous_opening(self):
+        """
+        Get the luminous opening geometry.
+
+        Returns:
+            LuminousOpening object with shape detection and area/volume calculations
+        """
+        from .geometry import LuminousOpening
+
+        return LuminousOpening.from_header(
+            self.width, self.length, self.height, self.units
+        )
+
     @classmethod
     def from_tokens(
         cls,

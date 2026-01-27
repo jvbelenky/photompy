@@ -3,6 +3,7 @@ from .ies import IESFile
 from .photometry import Photometry
 from .tilt import TiltData, LampGeometry
 from .ies_header import FileGeneration
+from .geometry import LuminousOpening, LuminousShape
 
 # Deprecated functions (emit warnings when used)
 from .legacy import (
@@ -32,6 +33,8 @@ __all__ = [
     "TiltData",
     "LampGeometry",
     "FileGeneration",
+    "LuminousOpening",
+    "LuminousShape",
     # Deprecated (will emit warnings)
     "read_ies_data",
     "write_ies_data",
