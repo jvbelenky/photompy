@@ -2,8 +2,8 @@
 import pytest
 import numpy as np
 import warnings
-from photompy.interpolate import interpolate_values, get_intensity
-from photompy.read import read_ies_data
+from photompy._interpolate import interpolate_values, get_intensity
+from photompy.legacy import read_ies_data
 
 
 class TestGetIntensity:

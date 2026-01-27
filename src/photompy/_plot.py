@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import pathlib
 import warnings
-from .interpolate import interpolate_values
+from ._interpolate import interpolate_values
 
 
 def plot_ies(

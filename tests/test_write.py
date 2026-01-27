@@ -2,8 +2,8 @@
 import pytest
 import numpy as np
 import warnings
-from photompy.write import process_row, write_ies_data, scale_lamp_to_max, scale_lamp_to_total
-from photompy.read import read_ies_data
+from photompy._write import process_row
+from photompy.legacy import write_ies_data, scale_lamp_to_max, scale_lamp_to_total, read_ies_data
 from photompy import total_optical_power
 
 

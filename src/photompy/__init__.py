@@ -1,36 +1,50 @@
-from .read import read_ies_data
-from .write import write_ies_data, scale_lamp_to_max, scale_lamp_to_total
-from .plot import (
-    get_coords,
-    polar_to_cartesian,
-    plot_ies,
-    plot_valdict_cartesian,
-    plot_valdict_polar,
-)
-from .interpolate import get_intensity, interpolate_values
-from .calculate import total_optical_power, lamp_area
+# Modern API (recommended)
 from .ies import IESFile
 from .photometry import Photometry
 from .tilt import TiltData, LampGeometry
 from .ies_header import FileGeneration
 
+# Deprecated functions (emit warnings when used)
+from .legacy import (
+    read_ies_data,
+    write_ies_data,
+    scale_lamp_to_max,
+    scale_lamp_to_total,
+    total_optical_power,
+    lamp_area,
+    interpolate_values,
+    get_intensity,
+    plot_ies,
+)
+
+# Helper functions (still public for backward compatibility)
+from ._plot import (
+    get_coords,
+    polar_to_cartesian,
+    plot_valdict_cartesian,
+    plot_valdict_polar,
+)
+
 __all__ = [
-    "read_ies_data",
-    "write_ies_data",
-    "scale_lamp_to_max",
-    "scale_lamp_to_total",
-    "get_coords",
-    "polar_to_cartesian",
-    "plot_ies",
-    "plot_valdict_cartesian",
-    "plot_valdict_polar",
-    "get_intensity",
-    "interpolate_values",
-    "total_optical_power",
-    "lamp_area",
+    # Modern API
     "IESFile",
     "Photometry",
     "TiltData",
     "LampGeometry",
     "FileGeneration",
+    # Deprecated (will emit warnings)
+    "read_ies_data",
+    "write_ies_data",
+    "scale_lamp_to_max",
+    "scale_lamp_to_total",
+    "total_optical_power",
+    "lamp_area",
+    "interpolate_values",
+    "get_intensity",
+    "plot_ies",
+    # Helper functions
+    "get_coords",
+    "polar_to_cartesian",
+    "plot_valdict_cartesian",
+    "plot_valdict_polar",
 ]

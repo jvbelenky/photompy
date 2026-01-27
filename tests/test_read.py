@@ -3,10 +3,11 @@ import pytest
 import numpy as np
 import warnings
 from pathlib import Path
-from photompy.read import (
+from photompy._read import (
     load_bytes, get_version, process_keywords, process_header,
-    read_angles, verify_valdict, read_ies_data
+    read_angles, verify_valdict
 )
+from photompy.legacy import read_ies_data
 
 
 class TestLoadBytes:
@@ -206,53 +207,53 @@ class TestLoadBytesExtended:
 
 class TestGetLampType:
     """Tests for get_lamp_type function."""
-    from photompy.read import get_lamp_type
+    from photompy._read import get_lamp_type
 
     def test_type_c_axial(self):
         """Type C with single phi (axial symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0])
         result = get_lamp_type(phis, 1)
         assert result == "C0"
 
     def test_type_c_quad(self):
         """Type C with phis ending at 90 (quad symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 45, 90])
         result = get_lamp_type(phis, 1)
         assert result == "C90"
 
     def test_type_c_half(self):
         """Type C with phis ending at 180 (half symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 90, 180])
         result = get_lamp_type(phis, 1)
         assert result == "C180"
 
     def test_type_c_full(self):
         """Type C with phis ending at 360 (full)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 90, 180, 270, 360])
         result = get_lamp_type(phis, 1)
         assert result == "C360"
 
     def test_type_c_bad_first_phi_warns(self):
         """Type C with non-zero first phi should warn."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([10, 90, 180])
         with pytest.warns(UserWarning, match="first horizontal"):
             get_lamp_type(phis, 1)
 
     def test_type_c_bad_last_phi_warns(self):
         """Type C with invalid last phi should warn."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 45, 120])  # 120 is not valid
         with pytest.warns(UserWarning, match="last horizontal"):
             get_lamp_type(phis, 1)
 
     def test_type_b_quad(self):
         """Type B with 0 to 90 (quad symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 45, 90])
         with pytest.warns(UserWarning, match="not currently supported"):
             result = get_lamp_type(phis, 2)
@@ -260,7 +261,7 @@ class TestGetLampType:
 
     def test_type_b_half(self):
         """Type B with -90 to 90 (half symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([-90, 0, 90])
         with pytest.warns(UserWarning, match="not currently supported"):
             result = get_lamp_type(phis, 2)
@@ -268,21 +269,21 @@ class TestGetLampType:
 
     def test_type_b_bad_last_phi_warns(self):
         """Type B with last phi not 90 should warn."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 45, 60])
         with pytest.warns(UserWarning, match="last horizontal"):
             get_lamp_type(phis, 2)
 
     def test_type_b_bad_first_phi_warns(self):
         """Type B with first phi not -90 or 0 should warn."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([-45, 0, 90])
         with pytest.warns(UserWarning, match="first horizontal"):
             get_lamp_type(phis, 2)
 
     def test_type_a_quad(self):
         """Type A with 0 to 90 (quad symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 45, 90])
         with pytest.warns(UserWarning, match="not currently supported"):
             result = get_lamp_type(phis, 3)
@@ -290,7 +291,7 @@ class TestGetLampType:
 
     def test_type_a_half(self):
         """Type A with -90 to 90 (half symmetry)."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([-90, 0, 90])
         with pytest.warns(UserWarning, match="not currently supported"):
             result = get_lamp_type(phis, 3)
@@ -298,7 +299,7 @@ class TestGetLampType:
 
     def test_unknown_photometry_warns(self):
         """Unknown photometry type should warn."""
-        from photompy.read import get_lamp_type
+        from photompy._read import get_lamp_type
         phis = np.array([0, 90])
         with pytest.warns(UserWarning, match="could not be determined"):
             result = get_lamp_type(phis, 99)
@@ -307,7 +308,7 @@ class TestGetLampType:
 
 class TestFormatAngles:
     """Tests for _format_angles function."""
-    from photompy.read import _format_angles
+    from photompy._read import _format_angles
 
     def test_c90_symmetry(self, sample_path):
         """Test C90 (quad) symmetry expansion."""

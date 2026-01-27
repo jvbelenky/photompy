@@ -5,7 +5,7 @@ from pathlib import Path
 import warnings
 
 from photompy import total_optical_power, lamp_area
-from photompy.calculate import compute_frustrum_area, _compute_total_power
+from photompy._calculate import compute_frustrum_area, _compute_total_power
 
 
 @pytest.fixture
@@ -151,8 +151,8 @@ class TestLampAreaUnitsType:
         # Read a sample file and change units_type to 2
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            from photompy.read import read_ies_data
-            from photompy.write import write_ies_data
+            from photompy.legacy import read_ies_data
+            from photompy.legacy import write_ies_data
             lampdict = read_ies_data(sample_path / "sample_A.ies")
 
         # Change units_type to meters (2)
@@ -178,7 +178,7 @@ class TestLoadInterpdict:
 
     def test_loads_existing_interp_vals(self, sample_path):
         """Should return interp_vals from already interpolated dict."""
-        from photompy.calculate import _load_interpdict
+        from photompy._calculate import _load_interpdict
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             valdict = _load_interpdict(sample_path / "sample_A.ies", 91, 181)

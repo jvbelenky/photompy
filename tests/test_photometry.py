@@ -1,7 +1,7 @@
 """Tests for Photometry class."""
 import numpy as np
 import pytest
-import photompy.interpolate as interp
+import photompy._interpolate as interp
 from photompy.photometry import Photometry, PhotometricType, LampSymmetry
 from photompy.exceptions import IESDataError
 

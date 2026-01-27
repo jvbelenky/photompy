@@ -1,13 +1,19 @@
+"""
+Internal read helpers.
+
+This module contains helper functions for parsing IES files.
+These are internal implementation details, not part of the public API.
+"""
+
 import os
-import pathlib
 from pathlib import Path
 import warnings
 import numpy as np
 from collections import Counter
-from .interpolate import interpolate_values
 
 
 def _get_max_path() -> int:
+    """Get the maximum path length for the current platform."""
     # POSIX: ask the kernel
     if hasattr(os, "pathconf"):
         try:  # might fail on a weird FS
@@ -18,9 +24,7 @@ def _get_max_path() -> int:
     # Windows: use Win32 header value
     if os.name == "nt":
         try:
-            # 260 from <windows.h>; also available as ctypes.wintypes.MAX_PATH
             import ctypes.wintypes
-
             return ctypes.wintypes.MAX_PATH
         except Exception:
             return 260
@@ -30,91 +34,28 @@ def _get_max_path() -> int:
 
 
 _MAX_PATH = _get_max_path()
-# _MAX_PATH = os.pathconf("/", "PC_PATH_MAX")
-
-
-def read_ies_data(filedata, extend=True, interpolate=True):
-    """
-    main .ies file reading function
-    """
-
-    warnings.warn(
-        "read_ies_data is deprecated; use IESFile.read() instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    raw, origin = load_bytes(filedata)
-    lines = raw.decode("utf-8").split("\n")
-    lines = [line.strip() for line in lines]
-
-    lampdict = {"source": filedata}
-    lampdict["version"] = get_version(lines)
-
-    header = []
-    data_start_idx = None
-    tilt_value = None
-    for i, line in enumerate(lines):
-        if line.startswith("TILT="):
-            tilt_value = line.split("=", 1)[1]
-            if line == "TILT=INCLUDE":
-                data_start_idx = i + 5
-            else:
-                data_start_idx = i + 1
-            break
-        else:
-            header.append(line)
-    keywords = process_keywords(header)
-    # Legacy API: add TILT to keywords for write_ies_data compatibility
-    if tilt_value is not None:
-        keywords["TILT"] = tilt_value
-    lampdict["keywords"] = keywords
-
-    # all remaining data should be numeric
-    data = " ".join(lines[data_start_idx:]).split()
-    lampdict.update(process_header(data))
-
-    lampdict["lamp_type"] = "?"  # setting this here for readability
-
-    num_thetas = lampdict["num_vertical_angles"]
-    num_phis = lampdict["num_horizontal_angles"]
-    blocks = data[13:]
-    thetas, phis, values = read_angles(blocks, num_thetas, num_phis)
-    lampdict["original_vals"] = {
-        "thetas": thetas,
-        "phis": phis,
-        "values": values,
-    }
-
-    photometry = lampdict["photometric_type"]
-    lampdict["photometry"] = get_lamp_type(phis, photometry)
-
-    if extend:
-        _format_angles(lampdict)
-    if interpolate:
-        interpolate_values(lampdict)
-
-    return lampdict
 
 
 def load_bytes(src, *, encoding: str = "utf-8"):
     """
     Normalise every input flavour to `bytes`.
-    data   : `bytes` – raw content
-    origin : `Path | None` – where it came from (if a real file)
+
+    Returns:
+        data: bytes - raw content
+        origin: Path | None - where it came from (if a real file)
     """
-    # ── bytes already -------------------------------------------------
+    # bytes already
     if isinstance(src, (bytes, bytearray)):
         return bytes(src), None
 
-    # ── open file object ---------------------------------------------
+    # open file object
     if hasattr(src, "read"):
         raw = src.read()
         if isinstance(raw, str):
             raw = raw.encode(encoding, "surrogateescape")
         return raw, None
 
-    # ── string of some sort ----------------------------------------------
+    # string of some sort
     if isinstance(src, str):
         # in-memory text, or path
         if "TILT=" in src.upper():
@@ -122,62 +63,23 @@ def load_bytes(src, *, encoding: str = "utf-8"):
         else:
             return _read_file(src)
 
-    # --- Path ---------------
+    # Path
     if isinstance(src, Path):
         return _read_file(src)
-
-    # ── in‑memory text -----------------------------------------------
-    if isinstance(src, str):
-        return src.encode(encoding, "surrogateescape"), None
 
     raise TypeError(f"Cannot interpret {type(src).__name__} as IES data")
 
 
 def _read_file(src):
+    """Read bytes from a file path."""
     p = Path(src)
     if not p.is_file():
         raise FileNotFoundError("Invalid path")
     return p.read_bytes(), p
 
 
-def _read_data(fdata):
-    """
-    DEPRECATED
-    read string from filedata, which may be a path to a file, a bytes object,
-    or a decoded string
-    """
-
-    if isinstance(fdata, pathlib.PurePath):
-        string = _read_file(fdata)
-    elif isinstance(fdata, str):
-        if fdata.startswith("IESNA"):
-            string = fdata
-        else:
-            string = _read_file(fdata)
-    elif isinstance(fdata, bytes):
-        string = fdata.decode("utf-8")
-    else:
-        raise TypeError(
-            "Need either a string, filepath or a bytes-like object, not {}".format(
-                type(fdata)
-            )
-        )
-    return string.split("\n")
-
-
-# def _read_file(fdata):
-# """
-# DEPRECATED
-# read string from filepath
-# """
-# filepath = Path(fdata)
-# filetype = filepath.suffix.lower()
-# if filetype != ".ies":
-# raise ValueError(f"File must be .ies, not {filetype}")
-# return filepath.read_text()
-
-
 def get_version(lines, strict=False):
+    """Extract IES version from file lines."""
     if lines[0].startswith("IESNA"):
         version = lines[0]
     else:
@@ -187,6 +89,7 @@ def get_version(lines, strict=False):
 
 
 def process_keywords(header):
+    """Process header lines into a keyword dictionary."""
     # do some cleanup
     keylines = [line for line in header if line.startswith("[")]
     keys = [line.split("]")[0].strip("[") for line in keylines]
@@ -219,15 +122,13 @@ def process_keywords(header):
             k = i + j + 1
             newvals.append(" ".join(vals[i:k]))
             continue
-    # Note: TILT is now handled separately by IESFile._split_string
+
     keyword_dict = dict(zip(newkeys, newvals))
     return keyword_dict
 
 
 def process_header(data):
-    """
-    Process the numeric, non-keyword header data
-    """
+    """Process the numeric, non-keyword header data."""
     return {
         "num_lamps": int(data[0]),
         "lumens_per_lamp": float(data[1]),
@@ -246,7 +147,7 @@ def process_header(data):
 
 
 def read_angles(data, num_thetas, num_phis):
-
+    """Read angle and value data from numeric tokens."""
     # read vertical angles
     v_start = 0
     v_end = num_thetas
@@ -270,13 +171,10 @@ def read_angles(data, num_thetas, num_phis):
 
 def get_lamp_type(phis, photometry):
     """
-    Determine lamp photometry type (A, B, and C), and lateral lamp symmetry
-    (0, 90, 180, 360); determine if values imply that it is possible to extend
-    the angles along the entire unit sphere.
-    Lamp types: ["A90", "A-90", "B90", "B-90", "C0", "C90", "C180", "C360"]
-    Currently, only "C" photometries are supported.
-    """
+    Determine lamp photometry type (A, B, and C), and lateral lamp symmetry.
 
+    Lamp types: ["A90", "A-90", "B90", "B-90", "C0", "C90", "C180", "C360"]
+    """
     lamp_type = "?"
 
     if photometry == 1:
@@ -316,9 +214,7 @@ def get_lamp_type(phis, photometry):
     # list only currently supported lamp types
     if lamp_type not in ["C0", "C90", "C180", "C360"]:
         msg = "Photometry type {} not currently supported. \
-            Values will not be mirrored.".format(
-            lamp_type
-        )
+            Values will not be mirrored.".format(lamp_type)
         warnings.warn(msg, stacklevel=2)
 
     return lamp_type
@@ -326,13 +222,11 @@ def get_lamp_type(phis, photometry):
 
 def _format_angles(lampdict):
     """
-    Read the lamp symmetry and mirror the values accordingly
+    Read the lamp symmetry and mirror the values accordingly.
 
     TODO: add support for type A and B photometry
-    https://support.agi32.com/support/solutions/articles/22000209748-type-a-type-b-and-type-c-photometry
-
+    https://support.agi32.com/support/solutions/articles/22000209748
     """
-
     newdict = {}
     lampdict["full_vals"] = {}
 
@@ -343,24 +237,19 @@ def _format_angles(lampdict):
 
     if lamp_type == "C0":
         # total radial symmetry
-        # extend phis
         phis = valdict["phis"].copy()
         newphis = np.arange(0, 360)
-
-        # extend values
         values = valdict["values"].copy().reshape(-1)
         newvals = np.tile(values, 360).reshape(-1, 360)
 
     elif lamp_type == "C90":
         # quaternary symmetry; each quadrant is identical
-        # extend phis
         phis = valdict["phis"].copy()
         phis2 = phis[1:] + 90
         phis3 = phis[1:] + 180
         phis4 = phis[1:] + 270
         newphis = np.concatenate((phis, phis2, phis3, phis4))
 
-        # extend values
         values = valdict["values"].copy()
         vals1 = values[:-1]
         vals2 = np.flip(values, axis=0)
@@ -418,9 +307,7 @@ def _format_angles(lampdict):
 
 
 def verify_valdict(valdict):
-    """
-    verify that dictionary of thetas, phis, and candela values is in order
-    """
+    """Verify that a valdict has the required structure."""
     keys = list(valdict.keys())
     if not all(x in keys for x in ["thetas", "phis", "values"]):
         raise KeyError
@@ -432,7 +319,5 @@ def verify_valdict(valdict):
     # verify data shape
     if not values.shape == (len(phis), len(thetas)):
         msg = "Shape of candela values {} does not match number of vertical and \
-            horizontal angles {}".format(
-            values.shape, (len(phis), len(thetas))
-        )
+            horizontal angles {}".format(values.shape, (len(phis), len(thetas)))
         raise ValueError(msg)

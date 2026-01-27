@@ -3,8 +3,8 @@ import pathlib
 import warnings
 import copy
 from .photometry import Photometry
-from .read import load_bytes, process_keywords, read_angles
-from .write import process_row
+from ._read import load_bytes, process_keywords, read_angles
+from ._write import process_row
 from .exceptions import IESPathError, IESHeaderError  # , IESDecodeError,
 from .ies_header import IESHeader, IESVersion
 from .tilt import TiltData

@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from enum import IntEnum, Enum
 import numpy as np
 import hashlib
-from .calculate import compute_frustrum_area
-from .plot import plot_polar, plot_cartesian
+from ._calculate import compute_frustrum_area
+from ._plot import plot_polar, plot_cartesian
 from .exceptions import IESDataError
 
 
