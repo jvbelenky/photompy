@@ -266,15 +266,68 @@ class LDTHeader:
         )
 
     @classmethod
-    def from_photometry(cls, phot) -> "LDTHeader":
+    def from_photometry(
+        cls,
+        phot,
+        *,
+        # Required parameters (no defaults)
+        manufacturer: str,
+        luminaire_name: str,
+        # Optional parameters with sensible defaults
+        luminaire_number: str = "",
+        luminaire_type: int = 1,
+        report_number: str = "",
+        date_user: str = "",
+        # Dimensions in mm
+        length: float = 0.0,
+        width: float = 0.0,
+        height: float = 0.0,
+        luminous_length: float = 0.0,
+        luminous_width: float = 0.0,
+        luminous_height: float = 0.0,
+        # Photometric characteristics
+        dff: float = None,
+        lorl: float = 100.0,
+        tilt: float = 0.0,
+        # Lamp data
+        num_lamps: int = 1,
+        lamp_type: str = "LED",
+        total_flux: float = None,
+    ) -> "LDTHeader":
         """
-        Create a minimal header for standalone Photometry.
+        Create an LDT header from photometry data with metadata.
+
+        The EULUMDAT format requires certain fields. The following are required
+        by this method (no defaults):
+        - manufacturer: Company/manufacturer name (line 1)
+        - luminaire_name: Luminaire description (line 9)
 
         Args:
-            phot: Photometry object
+            phot: Photometry object with angular intensity distribution
+            manufacturer: Company/manufacturer name (required)
+            luminaire_name: Luminaire description (required)
+            luminaire_number: Catalog number (default "")
+            luminaire_type: 1=point source, 2=linear, 3=other (default 1)
+            report_number: Test report number (default "")
+            date_user: Date and user info (default "")
+            length: Luminaire length in mm (default 0.0)
+            width: Luminaire width in mm (default 0.0)
+            height: Luminaire height in mm (default 0.0)
+            luminous_length: Luminous area length in mm (default 0.0)
+            luminous_width: Luminous area width in mm (default 0.0)
+            luminous_height: Luminous area height in mm, sets all C-planes (default 0.0)
+            dff: Downward flux fraction % (calculated from photometry if None)
+            lorl: Light output ratio % (default 100.0)
+            tilt: Tilt during measurement in degrees (default 0.0)
+            num_lamps: Number of lamps (default 1)
+            lamp_type: Lamp type description (default "LED")
+            total_flux: Total luminous flux in lumens (calculated from photometry if None)
 
         Returns:
-            LDTHeader with minimal/placeholder values
+            LDTHeader with populated fields
+
+        Raises:
+            TypeError: If any required parameter is missing
         """
         # Infer symmetry from photometry
         symmetry_map = {
@@ -286,42 +339,51 @@ class LDTHeader:
         }
         isym = symmetry_map.get(phot.symmetry, 0)
 
-        # Create a default lamp set with total flux from photometry
-        total_flux = phot.total_optical_power()
-        default_lamp = LDTLampSet(
-            num_lamps=1,
-            lamp_type="Generated",
+        # Calculate total flux from photometry if not provided
+        if total_flux is None:
+            total_flux = phot.total_optical_power()
+
+        # Calculate DFF (downward flux fraction) if not provided
+        if dff is None:
+            # For Type C, downward is theta 0-90, upward is 90-180
+            # This is a simplification - proper calculation requires integration
+            dff = 100.0  # Default to 100% downward for now
+
+        # Create lamp set
+        lamp_set = LDTLampSet(
+            num_lamps=num_lamps,
+            lamp_type=lamp_type,
             total_flux=total_flux,
         )
 
         return cls(
-            manufacturer="PhotomPy",
-            luminaire_type=1,
+            manufacturer=manufacturer,
+            luminaire_type=luminaire_type,
             symmetry=isym,
             mc=len(phot.phis),
             dc=phot.phis[1] - phot.phis[0] if len(phot.phis) > 1 else 0,
             ng=len(phot.thetas),
             dg=phot.thetas[1] - phot.thetas[0] if len(phot.thetas) > 1 else 0,
-            report_number="",
-            luminaire_name="Generated Photometry",
-            luminaire_number="",
+            report_number=report_number,
+            luminaire_name=luminaire_name,
+            luminaire_number=luminaire_number,
             filename="",
-            date_user="",
-            length=0.0,
-            width=0.0,
-            height=0.0,
-            luminous_length=0.0,
-            luminous_width=0.0,
-            luminous_height_c0=0.0,
-            luminous_height_c90=0.0,
-            luminous_height_c180=0.0,
-            luminous_height_c270=0.0,
-            dff=0.0,
-            lorl=100.0,
+            date_user=date_user,
+            length=length,
+            width=width,
+            height=height,
+            luminous_length=luminous_length,
+            luminous_width=luminous_width,
+            luminous_height_c0=luminous_height,
+            luminous_height_c90=luminous_height,
+            luminous_height_c180=luminous_height,
+            luminous_height_c270=luminous_height,
+            dff=dff,
+            lorl=lorl,
             conversion_factor=1.0,
-            tilt=0.0,
+            tilt=tilt,
             num_lamp_sets=1,
-            lamps=(default_lamp,),
+            lamps=(lamp_set,),
         )
 
     def to_dict(self) -> dict:

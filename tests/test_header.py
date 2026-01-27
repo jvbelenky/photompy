@@ -261,7 +261,14 @@ class TestIESHeaderTiltString:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        header = IESHeader.from_photometry(phot)
+        header = IESHeader.from_photometry(
+            phot,
+            manufacturer="Test",
+            lumcat="Test",
+            test="Test",
+            testlab="Test",
+            issuedate="2026-01-27",
+        )
         # Create header with tilt filename
         new_header = header.update(tilt="mytilt.txt")
         s = new_header._tilt_to_string()
@@ -280,7 +287,14 @@ class TestIESHeaderFromPhotometry:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        header = IESHeader.from_photometry(phot)
+        header = IESHeader.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
         assert header.num_lamps == 1
         assert header.num_vert_angles == 3
         assert header.num_horiz_angles == 2
@@ -295,7 +309,14 @@ class TestIESHeaderFromPhotometry:
             values=np.array([[100, 50]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        header = IESHeader.from_photometry(phot)
+        header = IESHeader.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
         assert header.version == IESVersion.V2019
 
 

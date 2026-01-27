@@ -145,21 +145,109 @@ class LDTFile:
         return cls(source=src, header=header, photometry=phot)
 
     @classmethod
-    def from_photometry(cls, phot: Photometry) -> "LDTFile":
+    def from_photometry(
+        cls,
+        phot: Photometry,
+        *,
+        # Required parameters (no defaults)
+        manufacturer: str,
+        luminaire_name: str,
+        # Optional parameters with sensible defaults
+        luminaire_number: str = "",
+        luminaire_type: int = 1,
+        report_number: str = "",
+        date_user: str = "",
+        # Dimensions in mm
+        length: float = 0.0,
+        width: float = 0.0,
+        height: float = 0.0,
+        luminous_length: float = 0.0,
+        luminous_width: float = 0.0,
+        luminous_height: float = 0.0,
+        # Photometric characteristics
+        dff: float = None,
+        lorl: float = 100.0,
+        tilt: float = 0.0,
+        # Lamp data
+        num_lamps: int = 1,
+        lamp_type: str = "LED",
+        total_flux: float = None,
+    ) -> "LDTFile":
         """
-        Create an LDTFile from a Photometry object.
+        Create an LDTFile from photometry data with metadata.
+
+        The EULUMDAT format requires certain fields. The following are required
+        by this method (no defaults):
+        - manufacturer: Company/manufacturer name (line 1)
+        - luminaire_name: Luminaire description (line 9)
 
         Args:
-            phot: Photometry object
+            phot: Photometry object with angular intensity distribution
+            manufacturer: Company/manufacturer name (required)
+            luminaire_name: Luminaire description (required)
+            luminaire_number: Catalog number (default "")
+            luminaire_type: 1=point source, 2=linear, 3=other (default 1)
+            report_number: Test report number (default "")
+            date_user: Date and user info (default "")
+            length: Luminaire length in mm (default 0.0)
+            width: Luminaire width in mm (default 0.0)
+            height: Luminaire height in mm (default 0.0)
+            luminous_length: Luminous area length in mm (default 0.0)
+            luminous_width: Luminous area width in mm (default 0.0)
+            luminous_height: Luminous area height in mm, sets all C-planes (default 0.0)
+            dff: Downward flux fraction % (calculated from photometry if None)
+            lorl: Light output ratio % (default 100.0)
+            tilt: Tilt during measurement in degrees (default 0.0)
+            num_lamps: Number of lamps (default 1)
+            lamp_type: Lamp type description (default "LED")
+            total_flux: Total luminous flux in lumens (calculated from photometry if None)
 
         Returns:
-            LDTFile with minimal/generated header
+            LDTFile with populated header and photometry
+
+        Raises:
+            TypeError: If any required parameter is missing
+
+        Example:
+            >>> import numpy as np
+            >>> from photompy import Photometry, LDTFile, PhotometricType
+            >>>
+            >>> thetas = np.linspace(0, 90, 19)
+            >>> phis = np.array([0])
+            >>> values = np.cos(np.deg2rad(thetas))[None, :] * 1000
+            >>> phot = Photometry(thetas, phis, values, PhotometricType.C)
+            >>>
+            >>> ldt = LDTFile.from_photometry(
+            ...     phot,
+            ...     manufacturer="Acme Lighting",
+            ...     luminaire_name="Downlight DL-100",
+            ...     luminous_width=50,
+            ...     luminous_length=50,
+            ... )
+            >>> ldt.write("downlight.ldt")
         """
-        return cls(
-            source=None,
-            header=LDTHeader.from_photometry(phot),
-            photometry=phot,
+        header = LDTHeader.from_photometry(
+            phot,
+            manufacturer=manufacturer,
+            luminaire_name=luminaire_name,
+            luminaire_number=luminaire_number,
+            luminaire_type=luminaire_type,
+            report_number=report_number,
+            date_user=date_user,
+            length=length,
+            width=width,
+            height=height,
+            luminous_length=luminous_length,
+            luminous_width=luminous_width,
+            luminous_height=luminous_height,
+            dff=dff,
+            lorl=lorl,
+            tilt=tilt,
+            num_lamps=num_lamps,
+            lamp_type=lamp_type,
+            total_flux=total_flux,
         )
+        return cls(source=None, header=header, photometry=phot)
 
     def update(self, **changes) -> "LDTFile":
         """

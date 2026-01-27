@@ -151,7 +151,14 @@ class TestIESFileFromPhotometry:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        ies = IESFile.from_photometry(phot)
+        ies = IESFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report 001",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
         assert ies.photometry is phot
         assert ies.header is not None
 
@@ -164,7 +171,14 @@ class TestIESFileFromPhotometry:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        ies = IESFile.from_photometry(phot)
+        ies = IESFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report 001",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
         assert ies.header.num_lamps == 1
         assert ies.header.multiplier == 1.0
 
@@ -177,10 +191,113 @@ class TestIESFileFromPhotometry:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        ies = IESFile.from_photometry(phot)
+        ies = IESFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report 001",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
         outfile = tmp_path / "from_phot.ies"
         ies.write(outfile)
         assert outfile.exists()
+
+    def test_from_photometry_required_keywords(self):
+        """Required keywords should be set in header."""
+        from photompy.photometry import Photometry, PhotometricType
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        ies = IESFile.from_photometry(
+            phot,
+            manufacturer="Acme Lighting",
+            lumcat="DL-100",
+            test="Performance Test 2026-001",
+            testlab="Acme Test Lab",
+            issuedate="2026-01-27",
+        )
+        assert ies.header.keywords["MANUFAC"] == "Acme Lighting"
+        assert ies.header.keywords["LUMCAT"] == "DL-100"
+        assert ies.header.keywords["TEST"] == "Performance Test 2026-001"
+        assert ies.header.keywords["TESTLAB"] == "Acme Test Lab"
+        assert ies.header.keywords["ISSUEDATE"] == "2026-01-27"
+
+    def test_from_photometry_missing_required_raises(self):
+        """Missing required parameters should raise TypeError."""
+        from photompy.photometry import Photometry, PhotometricType
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        # Missing all required parameters
+        with pytest.raises(TypeError):
+            IESFile.from_photometry(phot)
+
+        # Missing some required parameters
+        with pytest.raises(TypeError):
+            IESFile.from_photometry(phot, manufacturer="Test")
+
+    def test_from_photometry_optional_params(self):
+        """Optional parameters should be settable."""
+        from photompy.photometry import Photometry, PhotometricType
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        ies = IESFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report 001",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+            luminaire="Model X Downlight",
+            input_watts=50,
+            width=0.1,
+            length=0.1,
+        )
+        assert ies.header.keywords["LUMINAIRE"] == "Model X Downlight"
+        assert ies.header.input_watts == 50
+        assert ies.header.width == 0.1
+        assert ies.header.length == 0.1
+
+    def test_from_photometry_round_trip(self, tmp_path):
+        """IESFile from Photometry should round-trip correctly."""
+        from photompy.photometry import Photometry, PhotometricType
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        ies = IESFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report 001",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+            input_watts=25,
+        )
+        outfile = tmp_path / "roundtrip.ies"
+        ies.write(outfile)
+
+        # Read back
+        ies2 = IESFile.read(outfile)
+        assert ies2.header.keywords["MANUFAC"] == "Test Corp"
+        assert ies2.header.keywords["LUMCAT"] == "TC-100"
+        assert ies2.header.input_watts == 25
+        np.testing.assert_array_almost_equal(
+            ies.photometry.values, ies2.photometry.values, decimal=1
+        )
 
 
 class TestIESFileUpdate:
@@ -409,3 +526,93 @@ TILT=mytilt.dat
 100 80 50 100 80 50"""
         with pytest.raises(IESHeaderError, match="TILT= line missing"):
             IESFile._split_string(ies_string)
+
+
+class TestCreateIES:
+    """Tests for the create_ies convenience function."""
+
+    def test_create_ies_basic(self):
+        """create_ies should create an IESFile from arrays."""
+        from photompy import create_ies
+
+        thetas = np.linspace(0, 90, 10)
+        phis = np.array([0])
+        values = np.cos(np.deg2rad(thetas))[None, :] * 1000
+
+        ies = create_ies(
+            thetas, phis, values,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
+
+        assert isinstance(ies, IESFile)
+        assert ies.header.keywords["MANUFAC"] == "Test Corp"
+        assert ies.header.keywords["LUMCAT"] == "TC-100"
+        np.testing.assert_array_equal(ies.photometry.thetas, thetas)
+
+    def test_create_ies_missing_required_raises(self):
+        """create_ies should raise TypeError if required params missing."""
+        from photompy import create_ies
+
+        thetas = np.array([0, 45, 90])
+        phis = np.array([0])
+        values = np.array([[100, 70, 20]])
+
+        with pytest.raises(TypeError):
+            create_ies(thetas, phis, values, manufacturer="Test")
+
+    def test_create_ies_with_optional_params(self):
+        """create_ies should accept optional parameters."""
+        from photompy import create_ies
+
+        thetas = np.array([0, 45, 90])
+        phis = np.array([0])
+        values = np.array([[100, 70, 20]])
+
+        ies = create_ies(
+            thetas, phis, values,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+            luminaire="Downlight Model X",
+            input_watts=50,
+            width=0.1,
+            length=0.1,
+        )
+
+        assert ies.header.keywords["LUMINAIRE"] == "Downlight Model X"
+        assert ies.header.input_watts == 50
+        assert ies.header.width == 0.1
+
+    def test_create_ies_write_and_read(self, tmp_path):
+        """create_ies output should be writable and readable."""
+        from photompy import create_ies
+
+        thetas = np.linspace(0, 90, 19)
+        phis = np.array([0])
+        values = np.cos(np.deg2rad(thetas))[None, :] * 1000
+
+        ies = create_ies(
+            thetas, phis, values,
+            manufacturer="Test Corp",
+            lumcat="TC-100",
+            test="Test Report",
+            testlab="Test Lab",
+            issuedate="2026-01-27",
+        )
+
+        outfile = tmp_path / "test.ies"
+        ies.write(outfile)
+
+        # Read back and verify
+        ies2 = IESFile.read(outfile)
+        assert ies2.header.keywords["MANUFAC"] == "Test Corp"
+        assert ies2.header.keywords["LUMCAT"] == "TC-100"
+        np.testing.assert_array_almost_equal(
+            ies.photometry.thetas, ies2.photometry.thetas, decimal=1
+        )

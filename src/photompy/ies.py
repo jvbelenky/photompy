@@ -2,11 +2,12 @@ from dataclasses import dataclass, asdict
 import pathlib
 import warnings
 import copy
+from typing import Union
 from .photometry import Photometry
 from ._read import load_bytes, process_keywords, read_angles
 from ._write import process_row
 from .exceptions import IESPathError, IESHeaderError  # , IESDecodeError,
-from .ies_header import IESHeader, IESVersion
+from .ies_header import IESHeader, IESVersion, Units, FileGeneration
 from .tilt import TiltData
 
 
@@ -92,8 +93,111 @@ class IESFile:
         return cls(source=src, header=hdr, photometry=phot)
 
     @classmethod
-    def from_photometry(cls, phot):
-        return cls(source=None, header=IESHeader.from_photometry(phot), photometry=phot)
+    def from_photometry(
+        cls,
+        phot: Photometry,
+        *,
+        # Required by IES LM-63 spec (no defaults)
+        manufacturer: str,
+        lumcat: str,
+        test: str,
+        testlab: str,
+        issuedate: str,
+        # Optional parameters with sensible defaults
+        luminaire: str = None,
+        lumens_per_lamp: float = None,
+        input_watts: float = 0.0,
+        num_lamps: int = 1,
+        width: float = 0.0,
+        length: float = 0.0,
+        height: float = 0.0,
+        units: Units = Units.METERS,
+        ballast_factor: float = 1.0,
+        tilt: Union[str, TiltData] = "NONE",
+        version: IESVersion = None,
+        file_generation: FileGeneration = None,
+        keywords: dict = None,
+    ):
+        """
+        Create an IESFile from photometry data with metadata.
+
+        Per IES LM-63-2002/2019, the following keywords are REQUIRED and must
+        be provided by the caller (no defaults):
+        - manufacturer: Manufacturer name (MANUFAC keyword)
+        - lumcat: Luminaire catalog number (LUMCAT keyword)
+        - test: Test report number/description (TEST keyword)
+        - testlab: Testing laboratory name (TESTLAB keyword)
+        - issuedate: Test completion date, format YYYY-MM-DD (ISSUEDATE keyword)
+
+        Args:
+            phot: Photometry object with angular intensity distribution
+            manufacturer: Manufacturer name (required)
+            lumcat: Luminaire catalog number (required)
+            test: Test report number/description (required)
+            testlab: Testing laboratory name (required)
+            issuedate: Test completion date (required)
+            luminaire: Luminaire description (optional, LUMINAIRE keyword)
+            lumens_per_lamp: Lumens per lamp (calculated from photometry if None)
+            input_watts: Input watts (default 0.0)
+            num_lamps: Number of lamps (default 1)
+            width: Luminous opening width in meters (default 0.0)
+            length: Luminous opening length in meters (default 0.0)
+            height: Luminous opening height in meters (default 0.0)
+            units: Unit system, FEET or METERS (default METERS)
+            ballast_factor: Ballast factor (default 1.0)
+            tilt: Tilt information, "NONE" or TiltData (default "NONE")
+            version: IES version (default V2019)
+            file_generation: FileGeneration flags for V2019 (default: simulated=True)
+            keywords: Additional keywords dict to merge
+
+        Returns:
+            IESFile with populated header and photometry
+
+        Raises:
+            TypeError: If any required parameter is missing
+
+        Example:
+            >>> import numpy as np
+            >>> from photompy import Photometry, IESFile, PhotometricType
+            >>>
+            >>> thetas = np.linspace(0, 90, 19)
+            >>> phis = np.array([0])
+            >>> values = np.cos(np.deg2rad(thetas))[None, :] * 1000
+            >>> phot = Photometry(thetas, phis, values, PhotometricType.C)
+            >>>
+            >>> ies = IESFile.from_photometry(
+            ...     phot,
+            ...     manufacturer="Acme Lighting",
+            ...     lumcat="DL-100",
+            ...     test="Test Report 2026-001",
+            ...     testlab="Acme Test Lab",
+            ...     issuedate="2026-01-27",
+            ...     input_watts=15,
+            ... )
+            >>> ies.write("downlight.ies")
+        """
+        header = IESHeader.from_photometry(
+            phot,
+            manufacturer=manufacturer,
+            lumcat=lumcat,
+            test=test,
+            testlab=testlab,
+            issuedate=issuedate,
+            luminaire=luminaire,
+            lumens_per_lamp=lumens_per_lamp,
+            input_watts=input_watts,
+            num_lamps=num_lamps,
+            width=width,
+            length=length,
+            height=height,
+            units=units,
+            ballast_factor=ballast_factor,
+            tilt=tilt,
+            version=version,
+            file_generation=file_generation,
+            keywords=keywords,
+        )
+        return cls(source=None, header=header, photometry=phot)
 
     def update(self, **changes):
         if "multiplier" in changes and changes["multiplier"] != 1:

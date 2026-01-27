@@ -202,20 +202,29 @@ class TestLDTFileFromPhotometry:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        ldt = LDTFile.from_photometry(phot)
+        ldt = LDTFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+        )
         assert ldt.photometry is phot
         assert ldt.header is not None
 
-    def test_from_photometry_header_defaults(self):
-        """Header should have sensible defaults."""
+    def test_from_photometry_header_values(self):
+        """Header should have provided values."""
         phot = Photometry(
             thetas=np.array([0, 45, 90]),
             phis=np.array([0, 180]),
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        ldt = LDTFile.from_photometry(phot)
-        assert ldt.header.manufacturer == "PhotomPy"
+        ldt = LDTFile.from_photometry(
+            phot,
+            manufacturer="Acme Lighting",
+            luminaire_name="Downlight DL-100",
+        )
+        assert ldt.header.manufacturer == "Acme Lighting"
+        assert ldt.header.luminaire_name == "Downlight DL-100"
         assert ldt.header.num_lamp_sets == 1
         assert len(ldt.header.lamps) == 1
 
@@ -227,10 +236,71 @@ class TestLDTFileFromPhotometry:
             values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
             photometric_type=PhotometricType.C
         )
-        ldt = LDTFile.from_photometry(phot)
+        ldt = LDTFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+        )
         outfile = tmp_path / "from_phot.ldt"
         ldt.write(outfile)
         assert outfile.exists()
+
+    def test_from_photometry_missing_required_raises(self):
+        """Missing required parameters should raise TypeError."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        # Missing all required parameters
+        with pytest.raises(TypeError):
+            LDTFile.from_photometry(phot)
+
+        # Missing luminaire_name
+        with pytest.raises(TypeError):
+            LDTFile.from_photometry(phot, manufacturer="Test")
+
+    def test_from_photometry_optional_params(self):
+        """Optional parameters should be settable."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        ldt = LDTFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+            luminaire_number="TL-001",
+            luminous_width=100,
+            luminous_length=100,
+        )
+        assert ldt.header.luminaire_number == "TL-001"
+        assert ldt.header.luminous_width == 100
+        assert ldt.header.luminous_length == 100
+
+    def test_from_photometry_round_trip(self, tmp_path):
+        """LDTFile from Photometry should round-trip correctly."""
+        phot = Photometry(
+            thetas=np.array([0, 45, 90]),
+            phis=np.array([0, 180]),
+            values=np.array([[100, 70, 20], [100, 70, 20]], dtype=float),
+            photometric_type=PhotometricType.C
+        )
+        ldt = LDTFile.from_photometry(
+            phot,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+        )
+        outfile = tmp_path / "roundtrip.ldt"
+        ldt.write(outfile)
+
+        # Read back
+        ldt2 = LDTFile.read(outfile)
+        assert ldt2.header.manufacturer == "Test Corp"
+        assert ldt2.header.luminaire_name == "Test Luminaire"
 
 
 class TestLDTFileAttributePassthrough:
@@ -443,3 +513,80 @@ class TestLDTPlot:
         ldt = LDTFile.read(sample_path / "sample_ldt.ldt")
         ldt.plot(plot_type="cartesian")
         plt.close('all')
+
+
+class TestCreateLDT:
+    """Tests for the create_ldt convenience function."""
+
+    def test_create_ldt_basic(self):
+        """create_ldt should create an LDTFile from arrays."""
+        from photompy import create_ldt
+
+        thetas = np.linspace(0, 90, 10)
+        phis = np.array([0])
+        values = np.cos(np.deg2rad(thetas))[None, :] * 1000
+
+        ldt = create_ldt(
+            thetas, phis, values,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+        )
+
+        assert isinstance(ldt, LDTFile)
+        assert ldt.header.manufacturer == "Test Corp"
+        assert ldt.header.luminaire_name == "Test Luminaire"
+        np.testing.assert_array_equal(ldt.photometry.thetas, thetas)
+
+    def test_create_ldt_missing_required_raises(self):
+        """create_ldt should raise TypeError if required params missing."""
+        from photompy import create_ldt
+
+        thetas = np.array([0, 45, 90])
+        phis = np.array([0])
+        values = np.array([[100, 70, 20]])
+
+        with pytest.raises(TypeError):
+            create_ldt(thetas, phis, values, manufacturer="Test")
+
+    def test_create_ldt_with_optional_params(self):
+        """create_ldt should accept optional parameters."""
+        from photompy import create_ldt
+
+        thetas = np.array([0, 45, 90])
+        phis = np.array([0])
+        values = np.array([[100, 70, 20]])
+
+        ldt = create_ldt(
+            thetas, phis, values,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+            luminaire_number="TL-001",
+            luminous_width=50,
+            luminous_length=50,
+        )
+
+        assert ldt.header.luminaire_number == "TL-001"
+        assert ldt.header.luminous_width == 50
+        assert ldt.header.luminous_length == 50
+
+    def test_create_ldt_write_and_read(self, tmp_path):
+        """create_ldt output should be writable and readable."""
+        from photompy import create_ldt
+
+        thetas = np.linspace(0, 90, 19)
+        phis = np.array([0])
+        values = np.cos(np.deg2rad(thetas))[None, :] * 1000
+
+        ldt = create_ldt(
+            thetas, phis, values,
+            manufacturer="Test Corp",
+            luminaire_name="Test Luminaire",
+        )
+
+        outfile = tmp_path / "test.ldt"
+        ldt.write(outfile)
+
+        # Read back and verify
+        ldt2 = LDTFile.read(outfile)
+        assert ldt2.header.manufacturer == "Test Corp"
+        assert ldt2.header.luminaire_name == "Test Luminaire"

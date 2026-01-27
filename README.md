@@ -118,14 +118,50 @@ scale_lamp_to_max(5000, "input.ies", "output.ies")
 scale_lamp_to_total(1000, "input.ies", "output.ies")
 ```
 
+### Generating files from angular distribution tables
+
+Create IES or LDT files directly from numpy arrays:
+
+```python
+from photompy import create_ies, create_ldt
+import numpy as np
+
+# Define angular distribution
+thetas = np.linspace(0, 90, 19)  # vertical angles
+phis = np.array([0])              # single plane (axially symmetric)
+values = np.cos(np.deg2rad(thetas))[None, :] * 1000  # Lambertian distribution
+
+# Create IES file (required parameters per LM-63 spec)
+ies = create_ies(
+    thetas, phis, values,
+    manufacturer="Acme Lighting",
+    lumcat="DL-100",
+    test="Performance Test 2026-001",
+    testlab="Acme Test Lab",
+    issuedate="2026-01-27",
+    input_watts=15,
+)
+ies.write("downlight.ies")
+
+# Create LDT file (EULUMDAT format)
+ldt = create_ldt(
+    thetas, phis, values,
+    manufacturer="Acme Lighting",
+    luminaire_name="Downlight DL-100",
+    luminous_width=50,   # mm
+    luminous_length=50,  # mm
+)
+ldt.write("downlight.ldt")
+```
+
 <!-- ROADMAP -->
 ## Roadmap
 
 - [x] PhotometricData and AngleData objects (IESFile and Photometry classes)
-- [ ] Generate .ies files from an angular distribution table
+- [\] Generate .ies/.ldt files from an angular distribution table
 - [x] Type A and B photometry support
-- [ ] Dialux file (.ldt) support
-- [ ] More extensive write support
+- [x] Dialux file (.ldt) support
+- [\] More extensive write support
 
 
 <!-- LICENSE -->

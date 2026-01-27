@@ -266,38 +266,111 @@ class IESHeader:
         )
 
     @classmethod
-    def from_photometry(cls, phot):
+    def from_photometry(
+        cls,
+        phot,
+        *,
+        # Required by IES LM-63 spec (no defaults)
+        manufacturer: str,
+        lumcat: str,
+        test: str,
+        testlab: str,
+        issuedate: str,
+        # Optional parameters with sensible defaults
+        luminaire: str = None,
+        lumens_per_lamp: float = None,
+        input_watts: float = 0.0,
+        num_lamps: int = 1,
+        width: float = 0.0,
+        length: float = 0.0,
+        height: float = 0.0,
+        units: Units = Units.METERS,
+        ballast_factor: float = 1.0,
+        tilt: Union[str, TiltData] = "NONE",
+        version: "IESVersion" = None,
+        file_generation: FileGeneration = None,
+        keywords: dict = None,
+    ):
         """
-        Create a minimal, spec-compliant header for a standalone Photometry.
-        Only the angle counts, multiplier, and photometric type are real;
-        all other numeric fields get neutral placeholders.
-        """
-        today = date.today().isoformat()
+        Create an IES header from photometry data with metadata.
 
-        keywords = {
-            "TEST": "GENERATED PHOTOMETRY",
-            "TESTLAB": "PhotomPy",
-            "ISSUEDATE": today,
-            "MANUFAC": "PhotomPy",  # todo: add version
+        Per IES LM-63-2002/2019, the following keywords are REQUIRED and must
+        be provided by the caller (no defaults):
+        - manufacturer: Manufacturer name (MANUFAC keyword)
+        - lumcat: Luminaire catalog number (LUMCAT keyword)
+        - test: Test report number/description (TEST keyword)
+        - testlab: Testing laboratory name (TESTLAB keyword)
+        - issuedate: Test completion date, format YYYY-MM-DD (ISSUEDATE keyword)
+
+        Args:
+            phot: Photometry object with angular intensity distribution
+            manufacturer: Manufacturer name (required)
+            lumcat: Luminaire catalog number (required)
+            test: Test report number/description (required)
+            testlab: Testing laboratory name (required)
+            issuedate: Test completion date (required)
+            luminaire: Luminaire description (optional, LUMINAIRE keyword)
+            lumens_per_lamp: Lumens per lamp (calculated from photometry if None)
+            input_watts: Input watts (default 0.0)
+            num_lamps: Number of lamps (default 1)
+            width: Luminous opening width in meters (default 0.0)
+            length: Luminous opening length in meters (default 0.0)
+            height: Luminous opening height in meters (default 0.0)
+            units: Unit system, FEET or METERS (default METERS)
+            ballast_factor: Ballast factor (default 1.0)
+            tilt: Tilt information, "NONE" or TiltData (default "NONE")
+            version: IES version (default V2019)
+            file_generation: FileGeneration flags for V2019 (default: simulated=True)
+            keywords: Additional keywords dict to merge
+
+        Returns:
+            IESHeader with populated fields
+
+        Raises:
+            TypeError: If any required parameter is missing
+        """
+        if version is None:
+            version = IESVersion.V2019
+
+        # Build keywords dict with required fields
+        kw = {
+            "TEST": test,
+            "TESTLAB": testlab,
+            "ISSUEDATE": issuedate,
+            "MANUFAC": manufacturer,
+            "LUMCAT": lumcat,
         }
+        if luminaire is not None:
+            kw["LUMINAIRE"] = luminaire
+        if keywords is not None:
+            kw.update(keywords)
+
+        # Calculate lumens_per_lamp from photometry if not provided
+        if lumens_per_lamp is None:
+            lumens_per_lamp = phot.total_optical_power() / num_lamps
+
+        # File generation type for V2019
+        if file_generation is None:
+            file_generation = FileGeneration(simulated=True)
+        v11 = file_generation.to_float() if version.supports_filegen else 1.0
 
         return cls(
-            version=IESVersion.V2019,
-            keywords=keywords,
-            tilt="NONE",
-            num_lamps=1,
-            lumens_per_lamp=1.0,
+            version=version,
+            keywords=kw,
+            tilt=tilt,
+            num_lamps=num_lamps,
+            lumens_per_lamp=lumens_per_lamp,
             multiplier=1.0,
             num_vert_angles=len(phot.thetas),
             num_horiz_angles=len(phot.phis),
             photometric_type=phot.photometric_type,
-            units=Units.METERS,
-            width=0.0,
-            length=0.0,
-            height=0.0,
-            ballast_factor=1.0,
-            _v11=1.00001,  # Undefined file generation
-            input_watts=0.0,
+            units=units,
+            width=width,
+            length=length,
+            height=height,
+            ballast_factor=ballast_factor,
+            _v11=v11,
+            input_watts=input_watts,
         )
 
     def to_dict(self):
