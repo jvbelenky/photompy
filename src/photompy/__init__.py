@@ -1,5 +1,6 @@
 # Modern API (recommended)
 from .ies import IESFile
+from .ldt import LDTFile
 from .photometry import Photometry
 from .tilt import TiltData, LampGeometry
 from .ies_header import FileGeneration
@@ -29,6 +30,7 @@ from ._plot import (
 __all__ = [
     # Modern API
     "IESFile",
+    "LDTFile",
     "Photometry",
     "TiltData",
     "LampGeometry",
