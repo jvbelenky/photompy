@@ -21,6 +21,28 @@ class LampSymmetry(Enum):
     UNKNOWN = "unknown"
 
 
+@dataclass(frozen=True, slots=True)
+class BeamAngleResult:
+    """Result of beam angle calculation."""
+    angles: dict[float, float]  # phi -> beam angle mapping
+    threshold: float
+    min_angle: float
+    max_angle: float
+    mean_angle: float
+
+    @property
+    def angle(self) -> float:
+        """Representative beam angle (minimum across all planes)."""
+        return self.min_angle
+
+    @property
+    def is_asymmetric(self) -> bool:
+        """True if beam varies more than 5% across phi planes."""
+        if self.mean_angle == 0:
+            return False
+        return (self.max_angle - self.min_angle) / self.mean_angle > 0.05
+
+
 @dataclass(slots=True)
 class Photometry:
     thetas: np.ndarray
@@ -60,24 +82,6 @@ class Photometry:
 
         return True
 
-    @property
-    def coords(self):
-        try:
-            return self._cache["coords"]
-        except KeyError:
-            c = self._make_coords()
-            self._cache["coords"] = c
-            return c
-
-    @property
-    def photometric_coords(self):
-        try:
-            return self._cache["pcoords"]
-        except KeyError:
-            pc = self._make_photometric_coords()
-            self._cache["pcoords"] = pc
-            return pc
-
     def max(self):
         """maximum value of photometry values"""
         return self.values.max()
@@ -89,46 +93,6 @@ class Photometry:
     def center(self):
         """center irradiance"""
         return self.get_intensity(theta=0, phi=0)
-
-    def expanded(self):
-        """return a photometry with fully mirrored values"""
-        try:
-            exp = self._cache["expanded"]
-        except KeyError:
-            exp = self._expand_angles()  # compute expansion
-            self._cache["expanded"] = exp
-        return exp
-
-    def interpolated(self, num_thetas=181, num_phis=361):
-        """Return a fully expanded and interpolated photometry.
-
-        Creates a new Photometry with evenly-spaced angles and bilinearly
-        interpolated intensity values. The result is cached for efficiency.
-
-        Parameters
-        ----------
-        num_thetas : int, default=181
-            Number of theta (vertical) angles in result (0-180 range).
-        num_phis : int, default=361
-            Number of phi (horizontal) angles in result (0-360 range).
-
-        Returns
-        -------
-        Photometry
-            New photometry with interpolated values.
-        """
-        key = ("interpolated", num_thetas, num_phis)
-        try:
-            interp = self._cache[key]
-        except KeyError:
-            interp = self._interpolate_angles(num_thetas, num_phis)
-            self._cache[key] = interp
-        return interp
-        
-    def to_fingerprint(self) -> bytes:
-        """hash the photometry"""
-        arr = np.concatenate([self.thetas,self.phis,self.values.flatten()])
-        return hashlib.sha1(arr.tobytes()).digest()
 
     def total_optical_power(self) -> float:
         """compute the total optical power"""
@@ -187,15 +151,12 @@ class Photometry:
         For Type C: theta is 0-180 (nadir to zenith), phi is 0-360 (azimuth)
         For Type B/A: theta is -90 to 90 (vertical), phi is -90 to 90 (horizontal)
 
-        Parameters
-        ----------
         theta : array-like
             Vertical angle(s) of interest
         phi : array-like
             Horizontal/azimuthal angle(s) of interest
 
-        Returns
-        -------
+        Returns:
         float or ndarray
             Interpolated intensity value(s)
         """
@@ -258,6 +219,15 @@ class Photometry:
 
         return final_val
 
+    def expanded(self):
+        """return a photometry with fully mirrored values"""
+        try:
+            exp = self._cache["expanded"]
+        except KeyError:
+            exp = self._expand_angles()  # compute expansion
+            self._cache["expanded"] = exp
+        return exp
+
     def plot_polar(self, **kwargs):
         exp = self.expanded()
         return plot_polar(thetas=exp.thetas, phis=exp.phis, values=exp.values, **kwargs)
@@ -281,23 +251,94 @@ class Photometry:
 
         return np.array((x, y, z))
 
+    @property
+    def coords(self):
+        try:
+            return self._cache["coords"]
+        except KeyError:
+            c = self._make_coords()
+            self._cache["coords"] = c
+            return c
+
+    @property
+    def photometric_coords(self):
+        try:
+            return self._cache["pcoords"]
+        except KeyError:
+            pc = self._make_photometric_coords()
+            self._cache["pcoords"] = pc
+            return pc
+
+    def interpolated(self, num_thetas=181, num_phis=361):
+        """Return a fully expanded and interpolated photometry.
+
+        Creates a new Photometry with evenly-spaced angles and bilinearly
+        interpolated intensity values. The result is cached for efficiency.
+
+        num_thetas : int, default=181
+            Number of theta (vertical) angles in result (0-180 range).
+        num_phis : int, default=361
+            Number of phi (horizontal) angles in result (0-360 range).
+
+        Returns:
+        Photometry
+            New photometry with interpolated values.
+        """
+        key = ("interpolated", num_thetas, num_phis)
+        try:
+            interp = self._cache[key]
+        except KeyError:
+            interp = self._interpolate_angles(num_thetas, num_phis)
+            self._cache[key] = interp
+        return interp
+
+    def to_fingerprint(self) -> bytes:
+        """hash the photometry"""
+        arr = np.concatenate([self.thetas,self.phis,self.values.flatten()])
+        return hashlib.sha1(arr.tobytes()).digest()
+
+    def get_beam_angle(self, threshold: float = 0.5, num_points: int = 1000) -> BeamAngleResult:
+        """
+        Calculate beam angle from photometry data.
+
+        The beam angle is the full cone angle where intensity drops to a
+        threshold percentage of maximum intensity.
+
+        threshold : float, default=0.5
+            Fraction of maximum intensity for beam angle (0.5 = 50% = beam angle,
+            0.1 = 10% = field angle).
+        num_points : int, default=1000
+            Number of points to sample for interpolation.
+
+        Returns:
+        BeamAngleResult
+            Result containing beam angles for each phi plane and statistics.
+        """
+        cache_key = ("beam_angle", threshold, num_points)
+        try:
+            return self._cache[cache_key]
+        except KeyError:
+            pass
+
+        if self.photometric_type == PhotometricType.C:
+            result = self._beam_angle_type_c(threshold, num_points)
+        else:
+            result = self._beam_angle_type_b_a(threshold, num_points)
+
+        self._cache[cache_key] = result
+        return result
+
+    @property
+    def beam_angle(self) -> float:
+        """Beam angle at 50% intensity threshold."""
+        return self.get_beam_angle(threshold=0.5).angle
+
+    @property
+    def field_angle(self) -> float:
+        """Field angle at 10% intensity threshold."""
+        return self.get_beam_angle(threshold=0.1).angle
+
     # ------------------ Internals ------------------
-
-    def _make_coords(self):
-        """generate cartesian coordinates for plotting purposes"""
-        exp = self.expanded()
-        tgrid, pgrid = np.meshgrid(exp.thetas, exp.phis)
-        tflat, pflat = tgrid.flatten(), pgrid.flatten()
-        x, y, z = self.to_cartesian(tflat, pflat, 1)
-        return np.array([x, y, -z]).T
-
-    def _make_photometric_coords(self):
-        """generate value-scaled cartesian coordinates for plotting purposes"""
-        exp = self.expanded()
-        tgrid, pgrid = np.meshgrid(exp.thetas, exp.phis)
-        tflat, pflat = tgrid.flatten(), pgrid.flatten()
-        xp, yp, zp = exp.to_cartesian(tflat, pflat, exp.values.flatten())
-        return np.array([xp, yp, -zp]).T
 
     def _infer_symmetry(self):
         """
@@ -520,6 +561,22 @@ class Photometry:
             photometric_type=self.photometric_type,
         )
 
+    def _make_coords(self):
+        """generate cartesian coordinates for plotting purposes"""
+        exp = self.expanded()
+        tgrid, pgrid = np.meshgrid(exp.thetas, exp.phis)
+        tflat, pflat = tgrid.flatten(), pgrid.flatten()
+        x, y, z = self.to_cartesian(tflat, pflat, 1)
+        return np.array([x, y, -z]).T
+
+    def _make_photometric_coords(self):
+        """generate value-scaled cartesian coordinates for plotting purposes"""
+        exp = self.expanded()
+        tgrid, pgrid = np.meshgrid(exp.thetas, exp.phis)
+        tflat, pflat = tgrid.flatten(), pgrid.flatten()
+        xp, yp, zp = exp.to_cartesian(tflat, pflat, exp.values.flatten())
+        return np.array([xp, yp, -zp]).T
+
     def _interpolate_angles(self, num_thetas=181, num_phis=361):
         """
         Return a photometry with evenly-spaced interpolated angles.
@@ -551,3 +608,125 @@ class Photometry:
             values=newvalues,
             photometric_type=expanded.photometric_type,
         )
+
+    def _beam_angle_type_c(self, threshold: float, num_points: int) -> BeamAngleResult:
+        """Calculate beam angle for Type C (nadir-based) photometry."""
+        max_intensity = self.max()
+        target_intensity = max_intensity * threshold
+
+        expanded = self.expanded()
+        angles = {}
+
+        for phi in expanded.phis:
+            half_angle = self._find_half_angle(
+                expanded, phi, target_intensity, num_points, theta_start=0, theta_end=180
+            )
+            if half_angle is not None:
+                angles[float(phi)] = 2 * half_angle  # Full cone angle
+
+        if not angles:
+            return BeamAngleResult(
+                angles={},
+                threshold=threshold,
+                min_angle=0.0,
+                max_angle=0.0,
+                mean_angle=0.0,
+            )
+
+        angle_values = list(angles.values())
+        return BeamAngleResult(
+            angles=angles,
+            threshold=threshold,
+            min_angle=min(angle_values),
+            max_angle=max(angle_values),
+            mean_angle=sum(angle_values) / len(angle_values),
+        )
+
+    def _beam_angle_type_b_a(self, threshold: float, num_points: int) -> BeamAngleResult:
+        """Calculate beam angle for Type B/A photometry."""
+        max_intensity = self.max()
+        target_intensity = max_intensity * threshold
+
+        expanded = self.expanded()
+        angles = {}
+
+        for phi in expanded.phis:
+            # For Type B/A, we measure from center (theta=0) outward in both directions
+            half_angle_pos = self._find_half_angle(
+                expanded, phi, target_intensity, num_points, theta_start=0, theta_end=90
+            )
+            half_angle_neg = self._find_half_angle(
+                expanded, phi, target_intensity, num_points, theta_start=0, theta_end=-90
+            )
+
+            if half_angle_pos is not None and half_angle_neg is not None:
+                angles[float(phi)] = half_angle_pos + half_angle_neg
+            elif half_angle_pos is not None:
+                angles[float(phi)] = 2 * half_angle_pos
+            elif half_angle_neg is not None:
+                angles[float(phi)] = 2 * half_angle_neg
+
+        if not angles:
+            return BeamAngleResult(
+                angles={},
+                threshold=threshold,
+                min_angle=0.0,
+                max_angle=0.0,
+                mean_angle=0.0,
+            )
+
+        angle_values = list(angles.values())
+        return BeamAngleResult(
+            angles=angles,
+            threshold=threshold,
+            min_angle=min(angle_values),
+            max_angle=max(angle_values),
+            mean_angle=sum(angle_values) / len(angle_values),
+        )
+
+    def _find_half_angle(
+        self,
+        photometry: "Photometry",
+        phi: float,
+        target_intensity: float,
+        num_points: int,
+        theta_start: float,
+        theta_end: float,
+    ) -> float | None:
+        """
+        Find the angle where intensity crosses the target threshold.
+
+        photometry : Photometry
+            The photometry to sample from (typically expanded).
+        phi : float
+            The phi plane to search in.
+        target_intensity : float
+            The intensity threshold to find.
+        num_points : int
+            Number of points to sample.
+        theta_start : float
+            Starting theta angle (center of beam).
+        theta_end : float
+            Ending theta angle (edge of beam).
+
+        Returns:
+        float or None
+            The half-angle where intensity drops below target, or None if not found.
+        """
+        thetas = np.linspace(theta_start, theta_end, num_points)
+        phis = np.full(num_points, phi)
+        intensities = photometry.get_intensity(thetas, phis)
+
+        # Find first crossing point where intensity < target
+        for i in range(1, len(intensities)):
+            if intensities[i] < target_intensity <= intensities[i - 1]:
+                # Linear interpolation to find exact crossing
+                t0, t1 = thetas[i - 1], thetas[i]
+                i0, i1 = intensities[i - 1], intensities[i]
+                if i0 != i1:
+                    crossing = t0 + (target_intensity - i0) * (t1 - t0) / (i1 - i0)
+                else:
+                    crossing = t0
+                return abs(crossing - theta_start)
+
+        return None
