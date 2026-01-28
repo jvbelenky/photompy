@@ -4,7 +4,8 @@ import math
 import pytest
 from pathlib import Path
 
-from photompy import IESFile, LuminousOpening, LuminousShape
+from photompy import IESFile
+from photompy.geometry import LuminousOpening, LuminousShape
 
 
 @pytest.fixture

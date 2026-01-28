@@ -3,7 +3,8 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-from photompy import IESFile, TiltData, LampGeometry
+from photompy import IESFile
+from photompy.tilt import TiltData, LampGeometry
 
 
 @pytest.fixture

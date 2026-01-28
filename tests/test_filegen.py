@@ -2,7 +2,8 @@
 import pytest
 from pathlib import Path
 
-from photompy import IESFile, FileGeneration
+from photompy import IESFile
+from photompy.ies_header import FileGeneration
 
 
 @pytest.fixture
