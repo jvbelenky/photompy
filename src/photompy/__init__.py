@@ -1,3 +1,6 @@
+# Version
+from ._version import __version__
+
 # Modern API (recommended)
 from .ies import IESFile
 from .ldt import LDTFile
@@ -19,6 +22,7 @@ from .legacy import (
 )
 
 __all__ = [
+    "__version__",
     # Modern API
     "IESFile",
     "LDTFile",

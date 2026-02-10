@@ -1,4 +1,4 @@
- .PHONY: test clean build
+ .PHONY: test clean build release publish-pypi
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
@@ -27,10 +27,14 @@ install:
 	$(PYTHON_INTERPRETER) setup.py sdist
 	pip install . --no-cache-dir
 	
-publish:
+publish-pypi:
 	rm -rf dist build */*.egg-info *.egg-info
 	$(PYTHON_INTERPRETER) setup.py sdist bdist_wheel
 	twine upload dist/*
+
+release:
+	bash scripts/release.sh $(VERSION)
+	$(MAKE) publish-pypi
 
 format:
 	black src/photompy/*
