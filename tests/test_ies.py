@@ -54,16 +54,26 @@ class TestIESFileWrite:
         original.write(outpath)
         reread = IESFile.read(outpath)
 
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_array_equal(
             original.photometry.thetas,
             reread.photometry.thetas,
-            decimal=2
         )
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_array_equal(
             original.photometry.phis,
             reread.photometry.phis,
-            decimal=2
         )
+        np.testing.assert_array_equal(
+            original.photometry.values,
+            reread.photometry.values,
+        )
+
+    def test_round_trip_preserves_equality(self, load_ies, tmp_path):
+        """Read -> write -> read should produce an equal IESFile."""
+        original = load_ies("sample_A.ies")
+        outpath = tmp_path / "roundtrip.ies"
+        original.write(outpath)
+        reread = IESFile.read(outpath)
+        assert original == reread
 
 
 class TestIESFileScaling:
@@ -341,15 +351,17 @@ class TestIESFileWrite:
         original.write(outpath)
         reread = IESFile.read(outpath)
 
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_array_equal(
             original.photometry.thetas,
             reread.photometry.thetas,
-            decimal=2
         )
-        np.testing.assert_array_almost_equal(
+        np.testing.assert_array_equal(
             original.photometry.phis,
             reread.photometry.phis,
-            decimal=2
+        )
+        np.testing.assert_array_equal(
+            original.photometry.values,
+            reread.photometry.values,
         )
 
     def test_write_full(self, load_ies, tmp_path):
