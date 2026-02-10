@@ -43,6 +43,15 @@ class BeamAngleResult:
         return (self.max_angle - self.min_angle) / self.mean_angle > 0.05
 
 
+def _min_precision(a, b):
+    """Return element-wise minimum of two precision tuples, or None."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return tuple(min(x, y) for x, y in zip(a, b))
+
+
 @dataclass(slots=True)
 class Photometry:
     thetas: np.ndarray
@@ -66,6 +75,13 @@ class Photometry:
             raise IESDataError("values shape mismatch")
         self.symmetry = self._infer_symmetry()
 
+    def _canonical_arrays(self):
+        """Return (thetas, phis, values) rounded to file precision if available."""
+        if self._file_precision is not None:
+            tp, pp, vp = self._file_precision
+            return np.round(self.thetas, tp), np.round(self.phis, pp), np.round(self.values, vp)
+        return self.thetas, self.phis, self.values
+
     def __eq__(self, other):
         if not isinstance(other, Photometry):
             return NotImplemented
@@ -76,11 +92,21 @@ class Photometry:
         if self.symmetry != other.symmetry:
             return False
 
-        if not np.array_equal(self.thetas, other.thetas):
+        st, sp, sv = self._canonical_arrays()
+        ot, op, ov = other._canonical_arrays()
+
+        # when precisions differ, compare at the coarser level
+        prec = _min_precision(self._file_precision, other._file_precision)
+        if prec is not None:
+            tp, pp, vp = prec
+            st, sp, sv = np.round(st, tp), np.round(sp, pp), np.round(sv, vp)
+            ot, op, ov = np.round(ot, tp), np.round(op, pp), np.round(ov, vp)
+
+        if not np.array_equal(st, ot):
             return False
-        if not np.array_equal(self.phis, other.phis):
+        if not np.array_equal(sp, op):
             return False
-        if not np.array_equal(self.values, other.values):
+        if not np.array_equal(sv, ov):
             return False
 
         return True
@@ -296,8 +322,9 @@ class Photometry:
         return interp
 
     def to_fingerprint(self) -> bytes:
-        """hash the photometry"""
-        arr = np.concatenate([self.thetas,self.phis,self.values.flatten()])
+        """Hash the photometry, rounding to file precision if available."""
+        t, p, v = self._canonical_arrays()
+        arr = np.concatenate([t, p, v.flatten()])
         return hashlib.sha1(arr.tobytes()).digest()
 
     def get_beam_angle(self, threshold: float = 0.5, num_points: int = 1000) -> BeamAngleResult:
