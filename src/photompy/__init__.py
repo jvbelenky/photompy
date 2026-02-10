@@ -2,6 +2,7 @@
 from .ies import IESFile
 from .ldt import LDTFile
 from .photometry import Photometry, PhotometricType
+from .geometry import LuminousOpening, LuminousShape
 from .create import create_ies, create_ldt
 
 # Deprecated functions (emit warnings when used)
@@ -23,6 +24,8 @@ __all__ = [
     "LDTFile",
     "Photometry",
     "PhotometricType",
+    "LuminousOpening",
+    "LuminousShape",
     "create_ies",
     "create_ldt",
     # Deprecated (emit warnings)
