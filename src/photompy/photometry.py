@@ -354,7 +354,9 @@ class Photometry:
                 raise IESDataError("IES file photometry is malformed")
 
             span = self.phis[-1]
-            if np.isclose(span, 360):
+            # Check for full azimuthal coverage (360° or close to it)
+            # Files often omit the duplicate 360° angle, so accept span > 270°
+            if np.isclose(span, 360) or (len(self.phis) > 4 and span > 270):
                 return LampSymmetry.NONE
             if np.isclose(span, 180):
                 return LampSymmetry.HALF
