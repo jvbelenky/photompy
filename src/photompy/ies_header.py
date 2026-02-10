@@ -104,6 +104,7 @@ class Units(IntEnum):
 
 
 class IESVersion(StrEnum):
+    V1995 = "LM-63-1995"
     V2002 = "LM-63-2002"
     V2019 = "LM-63-2019"
     UNKNOWN = "UNKNOWN"
@@ -114,7 +115,8 @@ class IESVersion(StrEnum):
 
     @property
     def supports_tilt_file(self) -> bool:
-        return self is IESVersion.V2002
+        """TILT=<filename> (external file) is only supported in older versions."""
+        return self in (IESVersion.V1995, IESVersion.V2002)
 
     @classmethod
     def from_token(cls, token: str, *, strict: bool = True):
@@ -132,23 +134,10 @@ class IESVersion(StrEnum):
     def to_header(self) -> str:
         if self is IESVersion.V2019:
             return "IES:" + self.value
-        elif self is IESVersion.V2002:
+        elif self in (IESVersion.V1995, IESVersion.V2002):
             return "IESNA:" + self.value
         else:
             return "VERSION UNKNOWN"
-
-
-# class FileGeneration(Enum):
-# UNDEFINED = 1.00001
-# SIMULATED = 1.00010
-# UNACCREDITED = 1.00000
-# UNACCREDITED_SCALED = 1.00100
-# UNACCREDITED_INTERP = 1.01000
-# UNACCREDITED_INTERP_SCALED = 1.01100
-# ACCREDITED = 1.10000
-# ACCREDITED_SCALED = 1.10100
-# ACCREDITED_INTERP = 1.11000
-# ACCREDITED_INTERP_SCALED = 1.11100
 
 
 @dataclass(frozen=True, slots=True)
