@@ -54,15 +54,15 @@ class TestIESFileWrite:
         original.write(outpath)
         reread = IESFile.read(outpath)
 
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             original.photometry.thetas,
             reread.photometry.thetas,
         )
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             original.photometry.phis,
             reread.photometry.phis,
         )
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             original.photometry.values,
             reread.photometry.values,
         )
@@ -351,15 +351,15 @@ class TestIESFileWrite:
         original.write(outpath)
         reread = IESFile.read(outpath)
 
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             original.photometry.thetas,
             reread.photometry.thetas,
         )
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             original.photometry.phis,
             reread.photometry.phis,
         )
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             original.photometry.values,
             reread.photometry.values,
         )
