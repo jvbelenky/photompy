@@ -41,9 +41,8 @@ def parse_ldt_header(lines: list[str], strict: bool = True) -> tuple[LDTHeader, 
     Returns:
         Tuple of (LDTHeader, data_start_index)
     """
-    header = LDTHeader.from_lines(lines, strict=strict)
-    data_start = header.header_line_count()
-    return header, data_start
+    # from_lines now returns (header, data_start_idx) directly
+    return LDTHeader.from_lines(lines, strict=strict)
 
 
 def parse_ldt_angles(

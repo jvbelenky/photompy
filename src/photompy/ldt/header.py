@@ -20,15 +20,21 @@ class LDTLampSet:
     """
     Per-lamp-set data from LDT header.
 
-    Each lamp set contains:
-    - num_lamps: Number of lamps in this set
+    Each lamp set contains 6 values:
+    - num_lamps: Number of lamps in this set (negative for absolute photometry)
     - lamp_type: Description of lamp type
     - total_flux: Total luminous flux in lumens for this set
+    - color: Color appearance / color temperature
+    - cri: Color rendering index (group)
+    - wattage: Wattage including ballast
     """
 
     num_lamps: int
     lamp_type: str
     total_flux: float
+    color: str = ""
+    cri: str = ""
+    wattage: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,7 +164,7 @@ class LDTHeader:
         cls,
         lines: list[str],
         strict: bool = True,
-    ) -> "LDTHeader":
+    ) -> tuple["LDTHeader", int]:
         """
         Parse LDT header from file lines.
 
@@ -167,7 +173,7 @@ class LDTHeader:
             strict: If True, raise errors on malformed data
 
         Returns:
-            LDTHeader instance
+            Tuple of (LDTHeader instance, data_start_index)
         """
         from ..exceptions import LDTHeaderError
 
@@ -223,19 +229,52 @@ class LDTHeader:
 
         lamps = []
         line_idx = 26
+        lines_per_lamp_set = 6  # Full EULUMDAT format: num, type, flux, color, cri, wattage
+        has_direct_ratios = True
+
+        # Detect format by checking if line after lamp data looks like direct ratios
+        # Direct ratios are 10 float values between 0 and 1
+        expected_end_idx = line_idx + (6 * num_lamp_sets)
+        if expected_end_idx + 10 <= len(lines):
+            try:
+                # Check if the 10 lines after lamp sets look like direct ratios
+                first_ratio = float(lines[expected_end_idx].strip())
+                if not (0 <= first_ratio <= 1.5):  # Direct ratios are typically 0.5-1.0
+                    # Doesn't look like direct ratios, try simpler format
+                    lines_per_lamp_set = 3
+                    has_direct_ratios = False
+            except (ValueError, IndexError):
+                # Try simpler format
+                lines_per_lamp_set = 3
+                has_direct_ratios = False
+        else:
+            # Not enough lines for full format, try simpler
+            lines_per_lamp_set = 3
+            has_direct_ratios = False
+
         for _ in range(num_lamp_sets):
             try:
                 num_lamps = int(lines[line_idx].strip())
                 lamp_type = lines[line_idx + 1].strip()
                 total_flux = float(lines[line_idx + 2].strip())
-                lamps.append(LDTLampSet(num_lamps, lamp_type, total_flux))
-                line_idx += 3
+                if lines_per_lamp_set == 6:
+                    color = lines[line_idx + 3].strip() if len(lines) > line_idx + 3 else ""
+                    cri = lines[line_idx + 4].strip() if len(lines) > line_idx + 4 else ""
+                    wattage = float(lines[line_idx + 5].strip()) if len(lines) > line_idx + 5 else 0.0
+                else:
+                    color, cri, wattage = "", "", 0.0
+                lamps.append(LDTLampSet(num_lamps, lamp_type, total_flux, color, cri, wattage))
+                line_idx += lines_per_lamp_set
             except (IndexError, ValueError) as e:
                 if strict:
                     raise LDTHeaderError(f"Error parsing lamp set: {e}") from None
                 break
 
-        return cls(
+        # Skip 10 direct ratio lines if present (Dk values for room indices 0.6 to 5.0)
+        if has_direct_ratios:
+            line_idx += 10
+
+        header = cls(
             manufacturer=manufacturer,
             luminaire_type=luminaire_type,
             symmetry=symmetry,
@@ -264,6 +303,7 @@ class LDTHeader:
             num_lamp_sets=num_lamp_sets,
             lamps=tuple(lamps),
         )
+        return header, line_idx
 
     @classmethod
     def from_photometry(
@@ -354,6 +394,9 @@ class LDTHeader:
             num_lamps=num_lamps,
             lamp_type=lamp_type,
             total_flux=total_flux,
+            color="",
+            cri="",
+            wattage=0.0,
         )
 
         return cls(
@@ -395,5 +438,8 @@ class LDTHeader:
         return replace(self, **changes)
 
     def header_line_count(self) -> int:
-        """Return the number of header lines (including lamp sets)."""
-        return 26 + (3 * self.num_lamp_sets)
+        """Return the number of header lines (including lamp sets and direct ratios)."""
+        # 26 base header lines
+        # + 6 lines per lamp set (num, type, flux, color, cri, wattage)
+        # + 10 direct ratio lines (Dk for room indices 0.6 to 5.0)
+        return 26 + (6 * self.num_lamp_sets) + 10
