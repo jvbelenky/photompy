@@ -4,7 +4,7 @@ import warnings
 import copy
 from typing import Union
 from .photometry import Photometry
-from ._read import load_bytes, process_keywords, read_angles
+from ._read import load_bytes, process_keywords, read_angles, _detect_decimal_places
 from ._write import process_row
 from .exceptions import IESPathError, IESHeaderError  # , IESDecodeError,
 from .ies_header import IESHeader, IESVersion, Units, FileGeneration
@@ -81,6 +81,13 @@ class IESFile:
         thetas, phis, values, precision = read_angles(
             blocks, hdr.num_vert_angles, hdr.num_horiz_angles
         )
+
+        # adjust value precision when multiplier != 1, since values get scaled
+        if hdr.multiplier != 1:
+            mult_dp = _detect_decimal_places([numeric[2]])
+            theta_p, phi_p, val_p = precision
+            precision = (theta_p, phi_p, val_p + mult_dp)
+
         phot = Photometry(
             thetas=thetas,
             phis=phis,
