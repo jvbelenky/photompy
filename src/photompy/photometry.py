@@ -50,6 +50,9 @@ class Photometry:
     values: np.ndarray
     photometric_type: PhotometricType
     symmetry: LampSymmetry = field(init=False)
+    _file_precision: tuple | None = field(
+        default=None, repr=False, compare=False,
+    )
 
     _cache: dict = field(
         default_factory=dict,

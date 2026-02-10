@@ -78,7 +78,7 @@ def read_ies_data(filedata, extend=True, interpolate=True):
     num_thetas = lampdict["num_vertical_angles"]
     num_phis = lampdict["num_horizontal_angles"]
     blocks = data[13:]
-    thetas, phis, values = read_angles(blocks, num_thetas, num_phis)
+    thetas, phis, values, _precision = read_angles(blocks, num_thetas, num_phis)
     lampdict["original_vals"] = {
         "thetas": thetas,
         "phis": phis,

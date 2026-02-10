@@ -103,7 +103,7 @@ class TestProcessHeader:
 class TestReadAngles:
     def test_basic_angles(self):
         data = ["0", "45", "90", "0", "180", "100", "80", "50", "100", "80", "50"]
-        thetas, phis, values = read_angles(data, 3, 2)
+        thetas, phis, values, _precision = read_angles(data, 3, 2)
         np.testing.assert_array_equal(thetas, [0, 45, 90])
         np.testing.assert_array_equal(phis, [0, 180])
         assert values.shape == (2, 3)
@@ -112,7 +112,7 @@ class TestReadAngles:
 
     def test_single_phi(self):
         data = ["0", "90", "0", "100", "50"]
-        thetas, phis, values = read_angles(data, 2, 1)
+        thetas, phis, values, _precision = read_angles(data, 2, 1)
         np.testing.assert_array_equal(thetas, [0, 90])
         np.testing.assert_array_equal(phis, [0])
         assert values.shape == (1, 2)

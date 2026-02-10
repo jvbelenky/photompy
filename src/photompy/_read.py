@@ -146,27 +146,46 @@ def process_header(data):
     }
 
 
+def _detect_decimal_places(tokens):
+    """Detect max decimal places from numeric string tokens."""
+    max_dp = 0
+    for t in tokens:
+        if '.' in t:
+            dp = len(t.split('.')[1])
+            max_dp = max(max_dp, dp)
+    return max_dp
+
+
 def read_angles(data, num_thetas, num_phis):
     """Read angle and value data from numeric tokens."""
     # read vertical angles
     v_start = 0
     v_end = num_thetas
-    thetas = np.array(list(map(float, data[v_start:v_end])))
+    theta_tokens = data[v_start:v_end]
+    thetas = np.array(list(map(float, theta_tokens)))
 
     # read horizontal angles
     h_start = v_end
     h_end = h_start + num_phis
-    phis = np.array(list(map(float, data[h_start:h_end])))
+    phi_tokens = data[h_start:h_end]
+    phis = np.array(list(map(float, phi_tokens)))
 
     # read values (1d and 2d)
     val_start = h_end
     num_values = num_thetas * num_phis
     val_end = val_start + num_values
-    vals = data[val_start:val_end]
-    values = np.array(list(map(float, vals)))
+    val_tokens = data[val_start:val_end]
+    values = np.array(list(map(float, val_tokens)))
     values = values.reshape(num_phis, num_thetas)
 
-    return thetas, phis, values
+    # detect precision from raw text before float conversion
+    precision = (
+        _detect_decimal_places(theta_tokens),
+        _detect_decimal_places(phi_tokens),
+        _detect_decimal_places(val_tokens),
+    )
+
+    return thetas, phis, values, precision
 
 
 def get_lamp_type(phis, photometry):

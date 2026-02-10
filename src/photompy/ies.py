@@ -78,7 +78,7 @@ class IESFile:
             strict=strict,
         )
 
-        thetas, phis, values = read_angles(
+        thetas, phis, values, precision = read_angles(
             blocks, hdr.num_vert_angles, hdr.num_horiz_angles
         )
         phot = Photometry(
@@ -86,6 +86,7 @@ class IESFile:
             phis=phis,
             values=values * hdr.multiplier,
             photometric_type=hdr.photometric_type,
+            _file_precision=precision,
         )
 
         hdr = hdr.update(multiplier=1)  # reset
@@ -255,11 +256,19 @@ class IESFile:
         filename=None,
         which="orig",  # orig | full | interp
         interp_args=(181, 361),
-        precision=2,
+        precision=None,
     ):
         """write the selected photometry to a file, or return as bytes"""
 
         photometry = self._get_photometry(which, interp_args)
+
+        # resolve precision from stored file precision or fallback
+        if precision is None and photometry._file_precision is not None:
+            theta_prec, phi_prec, val_prec = photometry._file_precision
+        else:
+            p = precision if precision is not None else 2
+            theta_prec, phi_prec, val_prec = p, p, p
+
         header = self.header.update(
             num_vert_angles=len(photometry.thetas),
             num_horiz_angles=len(photometry.phis),
@@ -267,13 +276,13 @@ class IESFile:
         # header
         iesdata = header.to_string()
         # thetas and phis
-        iesdata += process_row(photometry.thetas)
-        iesdata += process_row(photometry.phis)
+        iesdata += process_row(photometry.thetas, sigfigs=theta_prec)
+        iesdata += process_row(photometry.phis, sigfigs=phi_prec)
 
         # candela values
         candelas = ""
         for row in photometry.values:
-            candelas += process_row(row, sigfigs=precision)
+            candelas += process_row(row, sigfigs=val_prec)
         iesdata += candelas
 
         # write
