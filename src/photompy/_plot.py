@@ -346,8 +346,8 @@ def polar_to_cartesian(theta, phi, distance=1):
     phi_rad = np.radians(phi)
 
     # Polar to Cartesian conversion
-    x = distance * np.sin(theta_rad) * np.sin(phi_rad)
-    y = distance * np.sin(theta_rad) * np.cos(phi_rad)
+    x = distance * np.sin(theta_rad) * np.cos(phi_rad)
+    y = distance * np.sin(theta_rad) * np.sin(phi_rad)
     z = distance * np.cos(theta_rad)
 
     return x, y, z

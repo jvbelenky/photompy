@@ -274,8 +274,8 @@ class Photometry:
         """
         theta_rad = np.radians(theta)
         phi_rad = np.radians(phi)
-        x = r * np.sin(theta_rad) * np.sin(phi_rad)
-        y = r * np.sin(theta_rad) * np.cos(phi_rad)
+        x = r * np.sin(theta_rad) * np.cos(phi_rad)
+        y = r * np.sin(theta_rad) * np.sin(phi_rad)
         z = r * np.cos(theta_rad)
 
         return np.array((x, y, z))
