@@ -553,17 +553,17 @@ class TestToCartesian:
         assert np.isclose(z, 1)
 
     def test_theta_90_phi_0(self):
-        """theta=90, phi=0 should be on y-axis."""
+        """theta=90, phi=0 should be on x-axis."""
         x, y, z = Photometry.to_cartesian(90, 0, 1)
-        assert np.isclose(x, 0, atol=1e-10)
-        assert np.isclose(y, 1)
+        assert np.isclose(x, 1)
+        assert np.isclose(y, 0, atol=1e-10)
         assert np.isclose(z, 0, atol=1e-10)
 
     def test_theta_90_phi_90(self):
-        """theta=90, phi=90 should be on x-axis."""
+        """theta=90, phi=90 should be on y-axis."""
         x, y, z = Photometry.to_cartesian(90, 90, 1)
-        assert np.isclose(x, 1)
-        assert np.isclose(y, 0, atol=1e-10)
+        assert np.isclose(x, 0, atol=1e-10)
+        assert np.isclose(y, 1)
         assert np.isclose(z, 0, atol=1e-10)
 
     def test_array_input(self):
